@@ -112,9 +112,9 @@ svg .organ.flash{animation:flash .9s ease-out}
 .primary{width:100%;border:0;border-radius:14px;background:var(--accent);color:var(--accent-ink);padding:16px;font-family:var(--font-display);font-weight:500;font-size:1rem;display:grid;gap:2px}
 .primary small{font-family:var(--font-body);font-size:.78rem;opacity:.85;font-weight:500}
 .primary:active{transform:translateY(1px)}
-.row{display:flex;gap:8px;flex-wrap:wrap}
-.ghost{flex:1 1 150px;border:1px solid var(--line);background:var(--surface-2);border-radius:12px;padding:10px 12px;font-size:.84rem;font-weight:600;text-align:left}
-.ghost.bad{color:var(--bad)}.ghost.good{color:var(--ok)}
+.duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.primary.healthy{background:var(--ok);color:var(--accent-ink)}
+.hsep{border:0;border-top:1px solid var(--line);margin:8px 0 0}
 details.box{border:1px solid var(--line);border-radius:12px;margin-top:12px}
 details.box>summary{list-style:none;padding:12px 14px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
 details.box>summary::-webkit-details-marker{display:none}
@@ -178,7 +178,10 @@ details.box[open]>summary::after{content:"–"}
     <div class="col">
       <section class="card">
         <div class="card-head"><h2 id="todayTitle">Сегодня</h2><span class="muted num" style="font-size:.8rem" id="todayDate"></span></div>
-        <button class="primary" id="same" type="button">Делал всё то же самое<small>Обычный день по анкете</small></button>
+        <div class="duo">
+          <button class="primary" id="same" type="button">Делал всё то же самое<small>Обычный день по анкете</small></button>
+          <button class="primary healthy" id="healthy" type="button">Здоровый день<small>Как в твоём эталоне</small></button>
+        </div>
         <details class="box" id="custom">
           <summary>Сегодня было иначе</summary>
           <div class="boxin">
@@ -188,11 +191,6 @@ details.box[open]>summary::after{content:"–"}
             <button class="save" id="saveDay" type="button">Записать день</button>
           </div>
         </details>
-        <div class="sub">Перемотка для теста</div>
-        <div class="row">
-          <button class="ghost bad" id="w7same" type="button">+30 дней как обычно</button>
-          <button class="ghost good" id="w7clean" type="button">+30 дней без вредных привычек</button>
-        </div>
       </section>
 
       <section class="card chart">
@@ -239,6 +237,24 @@ details.box[open]>summary::after{content:"–"}
               <button class="primary" type="submit" style="grid-column:1/-1;margin-top:6px">Пересоздать двойника</button>
             </form>
             <p class="note">Обхваты меряй сантиметровой лентой: талию на уровне пупка, бёдра по самой широкой части. Дальше двойник сам пересчитывает их при изменении веса. Банка пива 0,5 л крепостью 5% — это около 20 г спирта. Вейп считается по затяжкам: он мягче сигарет для лёгких, но никотин так же нагружает сердце. Пересоздание сбрасывает дни и историю.</p>
+            <hr class="hsep">
+            <h3>Здоровый день</h3>
+            <p class="note" style="margin:0">Опиши, как для тебя выглядит здоровый день. Его записывает кнопка «Здоровый день», и по нему считается, сколько органам восстанавливаться.</p>
+            <form class="form" id="hform">
+              <label class="fld">Тренировка<select id="h-sport"><option value="1">Была</option><option value="0">Не было</option></select></label>
+              <label class="fld">Шагов, тыс.<input id="h-steps" type="number" min="0" max="40" step="0.5"></label>
+              <label class="fld">Сижу, ч<input id="h-sit" type="number" min="0" max="18" step="0.5"></label>
+              <label class="fld">Сон, ч<input id="h-sleep" type="number" min="3" max="12" step="0.5"></label>
+              <label class="fld">Экран перед сном, ч<input id="h-screen" type="number" min="0" max="6" step="0.5"></label>
+              <label class="fld">Стресс, 0–10<input id="h-stress" type="number" min="0" max="10"></label>
+              <label class="fld">Поздний ужин<select id="h-late"><option value="0">Нет</option><option value="1">Да</option></select></label>
+              <label class="fld">Кофе, чашек<input id="h-coffee" type="number" min="0" max="15"></label>
+              <label class="fld">Пиво 0,5 л, банок<input id="h-beer" type="number" min="0" max="10" step="0.5"></label>
+              <label class="fld">Сигарет<input id="h-cig" type="number" min="0" max="60"></label>
+              <label class="fld">Вейп, затяжек<input id="h-vape" type="number" min="0" max="1500" step="10"></label>
+              <label class="fld">Энергетики, банок<input id="h-energy" type="number" min="0" max="6"></label>
+              <button class="primary healthy" type="submit" style="grid-column:1/-1;margin-top:6px">Сохранить здоровый день</button>
+            </form>
           </div>
         </details>
       </section>
@@ -304,6 +320,8 @@ const bmiOf=(w,p)=>w/Math.pow(p.h/100,2);
 
 const BEER=1.5; /* 1 банка 0,5 л 5% ≈ 20 г спирта ≈ 1,5 условные порции модели */
 function baseDay(p){return {alc:(p.beer||0)*BEER,cig:p.cig,vape:p.vape||0,coffee:p.coffee,energy:p.energy/7,sport:p.sport/7,steps:p.steps,sit:p.sit,sleep:sleepH(p),screen:p.screen,stress:p.stress,late:isLate(p)?1:0}}
+function defaultHealthy(p){return {sport:1,steps:Math.max(10,p.steps),sit:Math.min(p.sit,7),sleep:8,screen:.5,stress:Math.min(p.stress,4),late:0,coffee:Math.min(p.coffee,2),beer:0,cig:0,vape:0,energy:0}}
+function healthyDay(p){const h=p.healthy||defaultHealthy(p);return {...h,alc:(h.beer||0)*BEER}}
 function cleanDay(p){return {alc:0,cig:0,vape:0,coffee:Math.min(p.coffee,3),energy:0,sport:3/7,steps:Math.max(p.steps,8),sit:p.sit,sleep:Math.max(sleepH(p),7.5),screen:.5,stress:p.stress,late:0}}
 function typicalToday(p){return {beer:0,alc:0,cig:p.cig,vape:p.vape||0,coffee:p.coffee,energy:0,sport:0,steps:p.steps,sit:p.sit,sleep:sleepH(p),screen:p.screen,stress:p.stress,late:isLate(p)?1:0}}
 
@@ -329,6 +347,7 @@ const loadOf=s=>clamp(s.A*.7+s.C,0,100);
 function kcal(d){return d.alc*140+d.energy*110+d.late*150+Math.max(0,d.sit-7)*30+Math.max(0,6-d.steps)*40-d.sport*300-Math.max(0,d.steps-8)*40}
 
 function create(p){
+  if(!p.healthy)p.healthy=defaultHealthy(p);
   const b=baseDay(p),bmi=bmiOf(p.w,p),organs={};
   const chronic={
     liver:p.alcYears*(p.beer||0)*BEER*2,
@@ -359,7 +378,7 @@ function step(st,d){
   if(st.hist.length>400)st.hist.shift();
 }
 function recovery(st,o){
-  let s={...st.organs[o]};const c=cleanDay(st.p);
+  let s={...st.organs[o]};const c=healthyDay(st.p);
   for(let i=0;i<1826;i++){if(loadOf(s)<15)return i;s=adv(s,o,c)}
   return Infinity;
 }
@@ -379,6 +398,7 @@ const KEY='dvoinik-proto-v3';
 let state;
 try{const raw=localStorage.getItem(KEY);if(raw)state=JSON.parse(raw)}catch(e){}
 if(!state||!state.organs||!state.p||!state.p.waist||state.p.beer===undefined)state=create({...EXAMPLE});
+if(!state.p.healthy)state.p.healthy=defaultHealthy(state.p);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
 
 let today=typicalToday(state.p);
@@ -617,7 +637,7 @@ function renderDetail(){
     <div class="big"><b class="num">${Math.round(l)}</b><span class="muted">из 100 · накопленная часть ${Math.round(Math.min(l,state.organs[o].C))}</span></div>
     <div class="sub">Что нагружает в обычный день</div>
     <div class="feeds">${t.length?t.map(([n,v])=>`<div class="feed ${v<0?'good':''}"><span>${n}</span><span class="b"><i style="width:${Math.abs(v)/mx*100}%"></i></span><span>${v<0?'−':'+'}${fmt(Math.abs(v))}</span></div>`).join(''):'<p class="muted" style="margin:0">Ничего заметного.</p>'}</div>
-    <div class="recov">Если убрать вредные привычки, до нормы: <b>${dur(rec)}</b></div>
+    <div class="recov">Если жить по своему здоровому дню, до нормы: <b>${dur(rec)}</b></div>
     <div class="sub">Восстановление</div>
     <p class="muted" style="margin:0 0 10px;font-size:.84rem">${sinceTxt}</p>
     <ol class="tl">${steps}</ol>`;
@@ -684,11 +704,19 @@ document.addEventListener('input',e=>{
 });
 $('#same').addEventListener('click',()=>logDays(baseDay(state.p),1,`День ${state.day+1}: как обычно`));
 $('#saveDay').addEventListener('click',()=>{const d={...today,alc:today.beer*BEER};logDays(d,1,`День ${state.day+1} записан`);today=typicalToday(state.p);renderToday();$('#custom').open=false});
-$('#w7same').addEventListener('click',()=>logDays(baseDay(state.p),30,'+30 дней как обычно'));
-$('#w7clean').addEventListener('click',()=>logDays(cleanDay(state.p),30,'+30 дней без вредных привычек'));
+$('#healthy').addEventListener('click',()=>logDays(healthyDay(state.p),1,`День ${state.day+1}: здоровый день`));
 
 const FIELDS=['sex','h','w','shoulder','chest','waist','hips','arm','leg','sport','sportYears','steps','sit','bed','wake','meal','screen','stress','beer','alcYears','cig','cigYears','vape','vapeYears','coffee','energy'];
-function fillForm(){FIELDS.forEach(k=>{const el=$('#f-'+k);if(el)el.value=state.p[k]})}
+function fillForm(){FIELDS.forEach(k=>{const el=$('#f-'+k);if(el)el.value=state.p[k]});fillHForm()}
+const HFIELDS=['sport','steps','sit','sleep','screen','stress','late','coffee','beer','cig','vape','energy'];
+function fillHForm(){const h=state.p.healthy;HFIELDS.forEach(k=>{const el=$('#h-'+k);if(el)el.value=h[k]})}
+$('#hform').addEventListener('submit',e=>{
+  e.preventDefault();
+  const h={};HFIELDS.forEach(k=>{h[k]=Math.max(0,Number($('#h-'+k).value)||0)});
+  if(!h.sleep)h.sleep=8;
+  state.p.healthy=h;save();renderAll();
+  toast('Здоровый день сохранён');
+});
 $('#form').addEventListener('submit',e=>{
   e.preventDefault();
   const p={};FIELDS.forEach(k=>{const v=$('#f-'+k).value;p[k]=['sex','bed','wake','meal'].includes(k)?v:Number(v)||0});
@@ -696,6 +724,7 @@ $('#form').addEventListener('submit',e=>{
   const dflt={shoulder:p.sex==='f'?39:46,chest:p.sex==='f'?92:100,waist:p.sex==='f'?74:88,hips:p.sex==='f'?100:100,arm:Math.round(p.h*.33),leg:Math.round(p.h*.455)};
   Object.keys(dflt).forEach(k=>{if(!p[k])p[k]=dflt[k]});
   if(!p.bed)p.bed='23:00';if(!p.wake)p.wake='07:00';if(!p.meal)p.meal='19:00';
+  p.healthy=state.p.healthy;
   state=create(p);today=typicalToday(p);save();renderAll();renderToday();
   toast('Двойник пересоздан по анкете');
   window.scrollTo({top:0,behavior:'smooth'});
