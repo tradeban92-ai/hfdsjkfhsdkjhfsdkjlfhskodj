@@ -173,7 +173,7 @@ details.box[open]>summary::after{content:"–"}
   <header class="top">
     <div>
       <h1>Двойник</h1>
-      <p class="muted">Прототип. Отмечай привычки за день и смотри, как они нагружают органы. Сейчас загружен пример профиля, свой можно ввести в анкете внизу.</p>
+      <p class="muted" id="intro"></p>
     </div>
     <div class="stats" id="stats"></div>
   </header>
@@ -448,7 +448,8 @@ const level=l=>l<25?['ok','Норма']:l<55?['warn','Нагрузка']:['bad',
 const KEY='dvoinik-proto-v3';
 let state;
 try{const raw=localStorage.getItem(KEY);if(raw)state=JSON.parse(raw)}catch(e){}
-if(!state||!state.organs||!state.p||!state.p.waist||state.p.beer===undefined)state=create({...EXAMPLE});
+if(!state||!state.organs||!state.p||!state.p.waist||state.p.beer===undefined){state=create({...EXAMPLE});state.isExample=true}
+if(state.isExample===undefined)state.isExample=['h','w','chest','waist','hips','cig','beer','steps','sit','stress'].every(k=>state.p[k]===EXAMPLE[k]);
 if(!state.p.healthy)state.p.healthy=defaultHealthy(state.p);
 if(!state.p.face)state.p.face='oval';
 if(state.p.fastfood===undefined)state.p.fastfood=1;
@@ -888,7 +889,13 @@ function renderToday(){
   $('#sliders').innerHTML=SLD.map(([k,l,a,b,s])=>`<div class="sl"><label for="s-${k}">${l}</label><output id="so-${k}">${fmt(today[k],s<1?1:0)}</output><input id="s-${k}" type="range" min="${a}" max="${b}" step="${s}" value="${today[k]}" data-sl="${k}"></div>`).join('');
   $('#toggles').innerHTML=`<button class="tg" type="button" data-tg="sport" aria-pressed="${today.sport>0}">Была тренировка</button><button class="tg" type="button" data-tg="late" aria-pressed="${today.late>0}">Ел поздно</button>`;
 }
+function renderIntro(){
+  $('#intro').innerHTML=state.isExample
+    ?'Сейчас загружен <b>пример профиля</b>. Заполни анкету внизу и нажми «Пересоздать двойника», чтобы он стал тобой.'
+    :'Отмечай привычки каждый день и смотри, как они меняют твоё тело, лицо и органы.';
+}
 function renderAll(){
+  renderIntro();
   $('#figure').innerHTML=avatar();
   renderMeas();renderLook();renderStats();renderOrgans();
   const ot=$('#orgToggle');ot.setAttribute('aria-pressed',!!state.showOrg);ot.textContent=state.showOrg?'Скрыть органы':'Показать органы';
@@ -959,7 +966,7 @@ $('#form').addEventListener('submit',e=>{
   if(!p.bed)p.bed='23:00';if(!p.wake)p.wake='07:00';if(!p.meal)p.meal='19:00';
   p.healthy=state.p.healthy;p.face=state.p.face;p.look=state.p.look;
   const so=state.showOrg;
-  state=create(p);state.showOrg=so;today=typicalToday(p);save();renderAll();renderToday();
+  state=create(p);state.showOrg=so;state.isExample=false;today=typicalToday(p);save();renderAll();renderToday();
   toast('Двойник пересоздан по анкете');
   window.scrollTo({top:0,behavior:'smooth'});
 });
