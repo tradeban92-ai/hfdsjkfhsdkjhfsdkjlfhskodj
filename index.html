@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Двойник здоровья</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>html,body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<style>
+/* Layout: app shell — avatar stage + organ list on the left, daily check-in + history on the right; one column on phones */
+:root{
+  /* deliberate single dark "hologram" look */
+  --bg:#06111A; --surface:#0B1C27; --surface-2:#10283A; --ink:#DDF2F8; --muted:#7FA2AF; --line:#1B394A;
+  --accent:#3FD6F2; --accent-ink:#04121B; --accent-soft:#0F3448;
+  --ok:#37DFA0; --warn:#F2B33D; --bad:#FF5A4E;
+  --holo:#46D9F5; --stage:#030B12;
+  --font-display:'Unbounded','Manrope',system-ui,sans-serif;
+  --font-body:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  --r:16px; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.app{max-width:1080px;margin:0 auto;display:grid;gap:16px}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;font-weight:700}
+h1{font-size:1.45rem;letter-spacing:-.01em}
+h2{font-size:1rem}
+h3{font-size:.9rem}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.top p{margin:4px 0 0;font-size:.88rem;max-width:60ch}
+.stats{display:flex;gap:8px;flex-wrap:wrap}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 12px;display:grid}
+.stat b{font-family:var(--font-display);font-size:1.05rem;font-weight:500}
+.stat span{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+@media(min-width:880px){.grid{grid-template-columns:minmax(0,11fr) minmax(0,10fr)}}
+.col{display:grid;gap:16px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+
+/* stage */
+.stage{display:grid;gap:14px}
+.figure{background:radial-gradient(ellipse at 50% 40%,#0A2636 0%,var(--stage) 70%);border:1px solid var(--line);border-radius:14px;padding:10px 6px 4px;
+  background-image:radial-gradient(ellipse at 50% 40%,rgba(70,217,245,.10) 0%,rgba(3,11,18,0) 65%),linear-gradient(rgba(70,217,245,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(70,217,245,.05) 1px,transparent 1px);background-size:auto,22px 22px,22px 22px;background-color:var(--stage)}
+.figure svg{width:100%;max-width:520px;height:auto;display:block;margin:0 auto}
+.figure .hud{fill:var(--muted);font:600 8px var(--font-mono);letter-spacing:.08em;text-transform:uppercase}
+.figure .hudv{fill:var(--holo);font:600 9.5px var(--font-mono)}
+.meas{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:6px}
+.ms{background:var(--surface-2);border-radius:10px;padding:6px 10px;display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:0 6px}
+.ms span{grid-column:1/-1;font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
+.ms b{font-family:var(--font-mono);font-size:1rem;font-weight:600}
+.ms em{font-style:normal;font-family:var(--font-mono);font-size:.74rem}
+.ms em.up{color:var(--bad)}.ms em.down{color:var(--ok)}
+.organs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px;min-width:0}
+.org{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:4px 10px;align-items:center;text-align:left;
+  background:var(--surface-2);border:1px solid transparent;border-radius:12px;padding:9px 12px}
+.org[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.org .dot{width:12px;height:12px;border-radius:50%;grid-row:span 2}
+.org .nm{font-weight:600;font-size:.92rem}
+.org .val{font-family:var(--font-display);font-weight:500;font-size:.95rem;text-align:right}
+.org .bar{height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.org .bar i{display:block;height:100%;border-radius:3px;transition:width .6s ease,background-color .6s}
+.org .rec{font-size:.74rem;color:var(--muted);text-align:right;white-space:nowrap}
+.legend{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--muted);margin-top:4px}
+.legend .grad{flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,hsl(185 85% 55%),hsl(130 75% 52%),hsl(45 90% 55%),hsl(0 90% 60%))}
+
+svg .organ{cursor:pointer;transition:fill .6s ease}
+svg .organ.sel g{stroke-width:2.6;fill-opacity:.55}
+@keyframes throb{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+svg .organ.hot{transform-box:fill-box;transform-origin:center;animation:throb 1.6s ease-in-out infinite}
+@keyframes flash{0%{filter:brightness(1.6)}100%{filter:none}}
+svg .organ.flash{animation:flash .9s ease-out}
+@media (prefers-reduced-motion: reduce){svg .organ.hot,svg .organ.flash{animation:none}.org .bar i{transition:none}}
+
+/* detail */
+.detail .big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.detail .big b{font-family:var(--font-display);font-size:2.2rem;font-weight:700;line-height:1}
+.pill{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:999px;color:#fff}
+.pill.ok{background:var(--ok)}.pill.warn{background:var(--warn)}.pill.bad{background:var(--bad)}
+.sub{margin:16px 0 8px;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
+.feeds{display:grid;gap:6px}
+.feed{display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr) 2.6rem;gap:8px;align-items:center;font-size:.85rem}
+.feed .b{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.feed .b i{display:block;height:100%;background:var(--bad);border-radius:4px}
+.feed.good .b i{background:var(--ok)}
+.feed span:last-child{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.recov{background:var(--surface-2);border-radius:12px;padding:10px 12px;font-size:.88rem;margin-top:14px}
+.tl{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.tl li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;position:relative;padding-bottom:12px}
+.tl li:not(:last-child)::before{content:"";position:absolute;left:10px;top:20px;bottom:0;width:2px;background:var(--line)}
+.tl .mk{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:var(--surface);display:grid;place-items:center;font-size:.7rem;font-weight:700;z-index:1}
+.tl li.done .mk{background:var(--ok);border-color:var(--ok);color:#fff}
+.tl li.next .mk{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.tl .t{font-weight:600;font-size:.86rem}
+.tl .d{font-size:.84rem;color:var(--muted)}
+.tl li.done .d{color:var(--ink)}
+
+/* today */
+.primary{width:100%;border:0;border-radius:14px;background:var(--accent);color:var(--accent-ink);padding:16px;font-family:var(--font-display);font-weight:500;font-size:1rem;display:grid;gap:2px}
+.primary small{font-family:var(--font-body);font-size:.78rem;opacity:.85;font-weight:500}
+.primary:active{transform:translateY(1px)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.ghost{flex:1 1 150px;border:1px solid var(--line);background:var(--surface-2);border-radius:12px;padding:10px 12px;font-size:.84rem;font-weight:600;text-align:left}
+.ghost.bad{color:var(--bad)}.ghost.good{color:var(--ok)}
+details.box{border:1px solid var(--line);border-radius:12px;margin-top:12px}
+details.box>summary{list-style:none;padding:12px 14px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+details.box>summary::-webkit-details-marker{display:none}
+details.box>summary::after{content:"+";font-family:var(--font-display);color:var(--muted)}
+details.box[open]>summary::after{content:"–"}
+.boxin{padding:0 14px 14px;display:grid;gap:12px}
+.steppers{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.stp{display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--surface-2);border-radius:10px;padding:6px 6px 6px 10px}
+.stp label{font-size:.82rem;font-weight:600}
+.stp .ctl{display:flex;align-items:center;gap:4px}
+.stp button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:700}
+.stp output{min-width:2.2ch;text-align:center;font-family:var(--font-display);font-size:.9rem}
+.sliders{display:grid;gap:10px}
+.sl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:.84rem}
+.sl label{font-weight:600}
+.sl output{font-variant-numeric:tabular-nums;color:var(--muted)}
+.sl input{grid-column:1/-1;width:100%;accent-color:var(--accent)}
+.toggles{display:flex;gap:8px;flex-wrap:wrap}
+.tg{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:7px 14px;font-size:.84rem;font-weight:600}
+.tg[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.save{border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:12px;padding:12px;font-weight:700}
+
+/* chart */
+.chart svg{width:100%;height:auto;display:block}
+.chart .axis{fill:var(--muted);font-size:9px;font-family:var(--font-body)}
+
+/* form */
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.fld{display:grid;gap:4px;font-size:.8rem;font-weight:600;color:var(--muted)}
+.fld input,.fld select{font:inherit;font-size:.92rem;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%;min-width:0}
+.fgroup{grid-column:1/-1;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;margin-top:6px}
+.note{font-size:.78rem;color:var(--muted);max-width:75ch}
+
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  padding:10px 16px;border-radius:12px;font-size:.86rem;font-weight:600;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:20}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div>
+      <h1>Двойник</h1>
+      <p class="muted">Прототип. Отмечай привычки за день и смотри, как они нагружают органы. Сейчас загружен пример профиля, свой можно ввести в анкете внизу.</p>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="card">
+        <div class="card-head"><h2>Твой двойник</h2><span class="muted" style="font-size:.8rem">Нажми на орган, вид сбоку показывает живот</span></div>
+        <div class="stage">
+          <div class="figure" id="figure"></div>
+          <div class="meas" id="meas"></div>
+          <div class="organs" id="organs"></div>
+          <div class="legend"><span>Норма</span><span class="grad"></span><span>Высокая нагрузка</span></div>
+        </div>
+      </section>
+      <section class="card detail" id="detail"></section>
+    </div>
+
+    <div class="col">
+      <section class="card">
+        <div class="card-head"><h2 id="todayTitle">Сегодня</h2><span class="muted num" style="font-size:.8rem" id="todayDate"></span></div>
+        <button class="primary" id="same" type="button">Делал всё то же самое<small>Обычный день по анкете</small></button>
+        <details class="box" id="custom">
+          <summary>Сегодня было иначе</summary>
+          <div class="boxin">
+            <div class="steppers" id="steppers"></div>
+            <div class="sliders" id="sliders"></div>
+            <div class="toggles" id="toggles"></div>
+            <button class="save" id="saveDay" type="button">Записать день</button>
+          </div>
+        </details>
+        <div class="sub">Перемотка для теста</div>
+        <div class="row">
+          <button class="ghost bad" id="w7same" type="button">+30 дней как обычно</button>
+          <button class="ghost good" id="w7clean" type="button">+30 дней без вредных привычек</button>
+        </div>
+      </section>
+
+      <section class="card chart">
+        <div class="card-head"><h2>Индекс здоровья</h2><span class="muted num" style="font-size:.8rem" id="chartNote"></span></div>
+        <div id="chart"></div>
+      </section>
+
+      <section class="card">
+        <details class="box" style="margin:0;border:0" id="anketa">
+          <summary style="padding:0"><h2>Анкета</h2></summary>
+          <div class="boxin" style="padding:14px 0 0">
+            <form class="form" id="form">
+              <div class="fgroup">Тело</div>
+              <label class="fld">Пол<select id="f-sex"><option value="m">Мужской</option><option value="f">Женский</option></select></label>
+              <label class="fld">Рост, см<input id="f-h" type="number" min="130" max="220" inputmode="numeric"></label>
+              <label class="fld">Вес, кг<input id="f-w" type="number" min="35" max="250" step="0.1" inputmode="decimal"></label>
+              <div class="fgroup">Размеры, см</div>
+              <label class="fld">Ширина плеч<input id="f-shoulder" type="number" min="28" max="70" inputmode="numeric"></label>
+              <label class="fld">Обхват груди<input id="f-chest" type="number" min="60" max="180" inputmode="numeric"></label>
+              <label class="fld">Обхват талии<input id="f-waist" type="number" min="48" max="190" inputmode="numeric"></label>
+              <label class="fld">Обхват бёдер<input id="f-hips" type="number" min="60" max="190" inputmode="numeric"></label>
+              <label class="fld">Длина руки (плечо–запястье)<input id="f-arm" type="number" min="40" max="90" inputmode="numeric"></label>
+              <label class="fld">Длина ноги (пах–пол)<input id="f-leg" type="number" min="55" max="110" inputmode="numeric"></label>
+              <div class="fgroup">Активность</div>
+              <label class="fld">Тренировок в неделю<input id="f-sport" type="number" min="0" max="14"></label>
+              <label class="fld">Лет занимаюсь (из последних 5)<input id="f-sportYears" type="number" min="0" max="5"></label>
+              <label class="fld">Шагов в день, тыс.<input id="f-steps" type="number" min="0" max="30" step="0.5"></label>
+              <label class="fld">Сижу в день, ч<input id="f-sit" type="number" min="0" max="18" step="0.5"></label>
+              <div class="fgroup">Режим</div>
+              <label class="fld">Ложусь<input id="f-bed" type="time"></label>
+              <label class="fld">Встаю<input id="f-wake" type="time"></label>
+              <label class="fld">Последний приём пищи<input id="f-meal" type="time"></label>
+              <label class="fld">Экран перед сном, ч<input id="f-screen" type="number" min="0" max="6" step="0.5"></label>
+              <label class="fld">Стресс за день, 0–10<input id="f-stress" type="number" min="0" max="10"></label>
+              <div class="fgroup">Вредные привычки</div>
+              <label class="fld">Пиво 5%, банок 0,5 л в день<input id="f-beer" type="number" min="0" max="10" step="0.5" inputmode="decimal"></label>
+              <label class="fld">Пью так уже, лет<input id="f-alcYears" type="number" min="0" max="60"></label>
+              <label class="fld">Сигарет в день<input id="f-cig" type="number" min="0" max="60"></label>
+              <label class="fld">Курю, лет<input id="f-cigYears" type="number" min="0" max="60"></label>
+              <label class="fld">Вейп, затяжек в день<input id="f-vape" type="number" min="0" max="1500" step="10"></label>
+              <label class="fld">Парю вейп, лет<input id="f-vapeYears" type="number" min="0" max="20"></label>
+              <label class="fld">Кофе, чашек в день<input id="f-coffee" type="number" min="0" max="15"></label>
+              <label class="fld">Энергетики, банок в неделю<input id="f-energy" type="number" min="0" max="40"></label>
+              <button class="primary" type="submit" style="grid-column:1/-1;margin-top:6px">Пересоздать двойника</button>
+            </form>
+            <p class="note">Обхваты меряй сантиметровой лентой: талию на уровне пупка, бёдра по самой широкой части. Дальше двойник сам пересчитывает их при изменении веса. Банка пива 0,5 л крепостью 5% — это около 20 г спирта. Вейп считается по затяжкам: он мягче сигарет для лёгких, но никотин так же нагружает сердце. Пересоздание сбрасывает дни и историю.</p>
+          </div>
+        </details>
+      </section>
+    </div>
+  </div>
+
+  <p class="note">Это упрощённая модель, а не медицинская диагностика. Сроки восстановления взяты как общие ориентиры и у каждого человека отличаются.</p>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const fmt=(v,d=1)=>v.toFixed(d).replace('.',',');
+
+const ORG={
+  brain:{name:'Мозг и сон', rA:.5, rC:.02, T:30, cue:'sleep'},
+  lungs:{name:'Лёгкие', rA:.15, rC:.004, T:30, cue:'cig'},
+  heart:{name:'Сердце и сосуды', rA:.3, rC:.008, T:30, cue:'heart'},
+  liver:{name:'Печень', rA:.35, rC:.01, T:12, cue:'alc'},
+  meta:{name:'Обмен веществ', rA:.2, rC:.006, T:30, cue:'sed'}
+};
+const ORDER=['brain','lungs','heart','liver','meta'];
+
+const TL={
+  liver:{after:'последней банки пива', steps:[
+    [0,'≈ 2–3 часа на каждую банку 0,5 л','Спирт выведен из крови'],
+    [1,'Через 1–2 дня','Ацетальдегид и продукты распада выведены, уходит интоксикация'],
+    [3,'Через 3–7 дней','Восстанавливаются сон и водный баланс'],
+    [14,'Через 2–4 недели','Заметно снижается жир в печени'],
+    [90,'Через 3–6 месяцев','Печень в основном восстанавливается, если нет цирроза']]},
+  lungs:{after:'последней сигареты или вейпа', steps:[
+    [0,'Через 20 минут','Снижаются пульс и давление'],
+    [1,'Через 12 часов','Угарный газ в крови возвращается к норме'],
+    [14,'Через 2–12 недель','Улучшаются кровообращение и функция лёгких'],
+    [30,'Через 1–9 месяцев','Меньше кашля и одышки'],
+    [365,'Через 1 год','Риск ишемической болезни сердца примерно вдвое ниже, чем у курящего']]},
+  heart:{after:'последней сигареты, вейпа или энергетика', steps:[
+    [0,'Через 5–6 часов','Кофеин из энергетика выведен наполовину'],
+    [1,'Через 1 день','Пульс и давление ниже, чем в день с сигаретами'],
+    [14,'Через 2–3 недели','При регулярных тренировках снижается пульс в покое'],
+    [90,'Через 3 месяца','Растёт выносливость, стабилизируется давление'],
+    [365,'Через 1 год','Риск болезней сердца примерно вдвое ниже, чем у курящего']]},
+  brain:{after:'последней короткой ночи или пива', steps:[
+    [1,'1 ночь 7–9 часов','Частично восстанавливаются внимание и настроение'],
+    [3,'3–4 ночи','Уходит накопленный недосып'],
+    [14,'2 недели режима','Стабилизируются засыпание и пробуждение'],
+    [30,'1 месяц','Стабильнее настроение и концентрация']]},
+  meta:{after:'последнего сидячего дня', steps:[
+    [1,'1 активный день','Мышцы активнее забирают сахар из крови'],
+    [7,'1 неделя','Улучшается чувствительность к инсулину'],
+    [30,'4–8 недель','Заметно уменьшаются вес и талия'],
+    [90,'3–6 месяцев','Устойчиво ниже вес и давление']]}
+};
+
+const EXAMPLE={sex:'m',h:180,w:88,shoulder:46,chest:104,waist:98,hips:104,arm:60,leg:82,sport:1,sportYears:1,steps:4,sit:9,bed:'00:30',wake:'07:00',meal:'22:00',screen:1.5,stress:6,beer:1,alcYears:8,cig:10,cigYears:6,vape:0,vapeYears:0,coffee:3,energy:2};
+
+const mins=t=>{const [h,m]=(t||'00:00').split(':').map(Number);return h*60+m};
+const sleepH=p=>((mins(p.wake)-mins(p.bed)+1440)%1440)/60;
+const isLate=p=>((mins(p.bed)-mins(p.meal)+1440)%1440)<180;
+const bmiOf=(w,p)=>w/Math.pow(p.h/100,2);
+
+const BEER=1.5; /* 1 банка 0,5 л 5% ≈ 20 г спирта ≈ 1,5 условные порции модели */
+function baseDay(p){return {alc:(p.beer||0)*BEER,cig:p.cig,vape:p.vape||0,coffee:p.coffee,energy:p.energy/7,sport:p.sport/7,steps:p.steps,sit:p.sit,sleep:sleepH(p),screen:p.screen,stress:p.stress,late:isLate(p)?1:0}}
+function cleanDay(p){return {alc:0,cig:0,vape:0,coffee:Math.min(p.coffee,3),energy:0,sport:3/7,steps:Math.max(p.steps,8),sit:p.sit,sleep:Math.max(sleepH(p),7.5),screen:.5,stress:p.stress,late:0}}
+function typicalToday(p){return {beer:0,alc:0,cig:p.cig,vape:p.vape||0,coffee:p.coffee,energy:0,sport:0,steps:p.steps,sit:p.sit,sleep:sleepH(p),screen:p.screen,stress:p.stress,late:isLate(p)?1:0}}
+
+function terms(o,d){
+  const M=Math.max;
+  switch(o){
+    case 'liver':return [['Пиво',d.alc*9],['Энергетики',d.energy*2],['Поздняя еда',d.late*2]];
+    case 'lungs':return [['Сигареты',d.cig*1.2],['Вейп',(d.vape||0)/100*3]];
+    case 'heart':return [['Сигареты',d.cig*1],['Вейп (никотин)',(d.vape||0)/100*4],['Энергетики',d.energy*4],['Кофе больше 4 чашек',M(0,d.coffee-4)*3],['Стресс',d.stress*.8],['Сидячий день',M(0,d.sit-6)*.8],['Пиво',d.alc*2],['Тренировки',-d.sport*4]];
+    case 'brain':return [['Недосып',M(0,7.5-d.sleep)*7],['Экран перед сном',d.screen*3],['Стресс',d.stress*1.2],['Пиво',d.alc*2],['Энергетики',d.energy*2]];
+    case 'meta':return [['Сидячий день',M(0,d.sit-5)*1.5],['Мало шагов',M(0,6-d.steps)*1.2],['Пиво',d.alc*2],['Энергетики',d.energy*3],['Поздняя еда',d.late*3],['Тренировки',-d.sport*4]];
+  }
+}
+const heal=d=>1+d.sport*.6+Math.min(d.steps,12)/12*.4;
+const dose=(o,d)=>Math.max(0,terms(o,d).reduce((s,t)=>s+t[1],0));
+function adv(s,o,d){
+  const g=ORG[o],h=heal(d);
+  const A=s.A*(1-Math.min(.95,g.rA*h))+dose(o,d);
+  const C=Math.max(0,s.C+.012*Math.max(0,A-g.T)-g.rC*h*s.C*(A<g.T?1:.25));
+  return {A,C};
+}
+const loadOf=s=>clamp(s.A*.7+s.C,0,100);
+function kcal(d){return d.alc*140+d.energy*110+d.late*150+Math.max(0,d.sit-7)*30+Math.max(0,6-d.steps)*40-d.sport*300-Math.max(0,d.steps-8)*40}
+
+function create(p){
+  const b=baseDay(p),bmi=bmiOf(p.w,p),organs={};
+  const chronic={
+    liver:p.alcYears*(p.beer||0)*BEER*2,
+    lungs:p.cigYears*p.cig*.35+(p.vapeYears||0)*(p.vape||0)/100*1.2,
+    heart:p.cigYears*p.cig*.15+Math.max(0,bmi-25)*1.5-p.sportYears*3,
+    brain:0,
+    meta:Math.max(0,bmi-23)*4-p.sportYears*3
+  };
+  ORDER.forEach(o=>{organs[o]={A:dose(o,b)/(ORG[o].rA*heal(b)),C:clamp(chronic[o],0,70)}});
+  const st={p,day:0,organs,weight:p.w,sel:'liver',
+    since:{alc:p.beer>0?0:999,cig:(p.cig>0||p.vape>0)?0:999,heart:(p.cig>0||p.vape>0||p.energy>0)?0:999,sleep:(sleepH(p)<6.5||p.beer>0)?0:999,sed:(p.steps<6&&p.sport<2)?0:999},
+    hist:[]};
+  st.hist.push({idx:index(st),w:st.weight});
+  return st;
+}
+function index(st){return 100-ORDER.reduce((s,o)=>s+loadOf(st.organs[o]),0)/ORDER.length}
+function step(st,d){
+  ORDER.forEach(o=>{st.organs[o]=adv(st.organs[o],o,d)});
+  st.weight=clamp(st.weight+kcal(d)/7700,35,250);
+  const s=st.since,inc=k=>Math.min(999,s[k]+1);
+  s.alc=d.alc>0?0:inc('alc');
+  s.cig=(d.cig>0||d.vape>0)?0:inc('cig');
+  s.heart=(d.cig>0||d.vape>0||d.energy>0)?0:inc('heart');
+  s.sleep=(d.sleep<6.5||d.alc>0)?0:inc('sleep');
+  s.sed=(d.steps<6&&d.sport<.5)?0:inc('sed');
+  st.day++;
+  st.hist.push({idx:index(st),w:st.weight});
+  if(st.hist.length>400)st.hist.shift();
+}
+function recovery(st,o){
+  let s={...st.organs[o]};const c=cleanDay(st.p);
+  for(let i=0;i<1826;i++){if(loadOf(s)<15)return i;s=adv(s,o,c)}
+  return Infinity;
+}
+function dur(n){
+  if(n===0)return 'в норме';
+  if(!isFinite(n))return 'больше 5 лет';
+  if(n<14)return '≈ '+n+' дн.';
+  if(n<60)return '≈ '+Math.round(n/7)+' нед.';
+  if(n<730)return '≈ '+Math.round(n/30)+' мес.';
+  return '≈ '+fmt(n/365,1)+' г.';
+}
+const col=l=>`hsl(${Math.round(185-l*1.85)} ${l<35?85:90}% ${l<35?55:58}%)`;
+const level=l=>l<25?['ok','Норма']:l<55?['warn','Нагрузка']:['bad','Высокая'];
+
+/* storage */
+const KEY='dvoinik-proto-v3';
+let state;
+try{const raw=localStorage.getItem(KEY);if(raw)state=JSON.parse(raw)}catch(e){}
+if(!state||!state.organs||!state.p||!state.p.waist||state.p.beer===undefined)state=create({...EXAMPLE});
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
+
+let today=typicalToday(state.p);
+let flash=new Set();
+
+/* avatar */
+/* ---------- wireframe avatar geometry ---------- */
+const S=2,FLOOR=410;
+const f1=v=>v.toFixed(1);
+const smt=t=>t*t*(3-2*t);
+function densify(keys,step){const out=[];for(let i=0;i<keys.length-1;i++){const a=keys[i],b=keys[i+1];const n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/step));for(let j=0;j<n;j++){const t=j/n;out.push({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,r:a.r+(b.r-a.r)*smt(t)})}}out.push({...keys[keys.length-1]});return out}
+function cr(pts,move=true){if(pts.length<2)return'';let d=(move?'M':'L')+f1(pts[0].x)+','+f1(pts[0].y);for(let i=0;i<pts.length-1;i++){const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2;d+=` C${f1(p1.x+(p2.x-p0.x)/6)},${f1(p1.y+(p2.y-p0.y)/6)} ${f1(p2.x-(p3.x-p1.x)/6)},${f1(p2.y-(p3.y-p1.y)/6)} ${f1(p2.x)},${f1(p2.y)}`}return d}
+function tube(keys,cap={},step=6.5,fr=[-.62,-.22,.2,.6]){
+  const cs=!!cap.start,ce=cap.end!==false;
+  const P=densify(keys,step);
+  const T=P.map((p,i)=>{const a=P[Math.max(0,i-1)],b=P[Math.min(P.length-1,i+1)];const dx=b.x-a.x,dy=b.y-a.y,l=Math.hypot(dx,dy)||1;return{x:dx/l,y:dy/l}});
+  const N=T.map(t=>({x:-t.y,y:t.x}));
+  const at=(i,q)=>({x:P[i].x+N[i].x*P[i].r*q+T[i].x*(1-q*q)*.24*P[i].r,y:P[i].y+N[i].y*P[i].r*q+T[i].y*(1-q*q)*.24*P[i].r});
+  const L=P.map((_,i)=>at(i,1)),R=P.map((_,i)=>at(i,-1));
+  const o=cr(L)+' '+cr(R.slice().reverse(),false)+' Z';
+  const capAt=(i,dir,from,to)=>{const r=P[i].r,tp={x:P[i].x+dir*T[i].x*r*.9,y:P[i].y+dir*T[i].y*r*.9},k=from===L?1:-1;
+    return ` M${f1(from[i].x)},${f1(from[i].y)} Q${f1(tp.x+k*N[i].x*r*1.1)},${f1(tp.y+k*N[i].y*r*1.1)} ${f1(tp.x)},${f1(tp.y)} Q${f1(tp.x-k*N[i].x*r*1.1)},${f1(tp.y-k*N[i].y*r*1.1)} ${f1(to[i].x)},${f1(to[i].y)}`};
+  const e=P.length-1;
+  const sk=cr(L)+' '+cr(R)+(ce?capAt(e,1,L,R):'')+(cs?capAt(0,-1,L,R):'');
+  let m='';
+  P.forEach((p,i)=>{const c={x:p.x+T[i].x*p.r*.48,y:p.y+T[i].y*p.r*.48};m+=`M${f1(L[i].x)},${f1(L[i].y)} Q${f1(c.x)},${f1(c.y)} ${f1(R[i].x)},${f1(R[i].y)} `});
+  fr.forEach(q=>{m+=cr(P.map((_,i)=>at(i,q)))+' '});
+  return{o:o+(ce?capAt(e,1,L,R)+' Z':'')+(cs?capAt(0,-1,L,R)+' Z':''),s:sk,m};
+}
+function headMesh(cx,cy,rx,ry){
+  const el=(a,b)=>`M${f1(cx-a)},${f1(cy)} A${f1(a)} ${f1(b)} 0 1 0 ${f1(cx+a)},${f1(cy)} A${f1(a)} ${f1(b)} 0 1 0 ${f1(cx-a)},${f1(cy)} Z `;
+  let m='';
+  [-.62,-.3,0,.3,.62].forEach(q=>{const y=cy+q*ry,h=rx*Math.sqrt(1-q*q);m+=`M${f1(cx-h)},${f1(y)} Q${f1(cx)},${f1(y+h*.32)} ${f1(cx+h)},${f1(y)} `});
+  m+=el(rx*.38,ry)+el(rx*.72,ry)+`M${f1(cx)},${f1(cy-ry)} L${f1(cx)},${f1(cy+ry)} `;
+  return{o:el(rx,ry),m};
+}
+const ellWD=(C,r)=>{const W=2*C/(Math.PI*(1+1/r));return[W,W/r]};
+
+function measures(st){
+  const p=st.p,dw=st.weight-p.w;
+  return{
+    shoulder:Math.max(28,p.shoulder+.1*dw),
+    chest:Math.max(60,p.chest+.5*dw),
+    waist:Math.max(48,p.waist+1*dw),
+    hips:Math.max(60,p.hips+.6*dw),
+    arm:p.arm,leg:p.leg
+  };
+}
+function geometry(st){
+  const p=st.p,H=p.h,fem=p.sex==='f',m=measures(st);
+  const top=FLOOR-H*S,headH=.13*H,headW=.088*H*(fem?.95:1);
+  const chin=top+headH*S,shoulderY=top+.185*H*S;
+  const crotchY=clamp(FLOOR-m.leg*S,shoulderY+.25*H*S,FLOOR-.36*H*S);
+  const tl=crotchY-shoulderY,Y=k=>shoulderY+k*tl;
+  const chestY=Y(.28),ubY=Y(.41),waistY=Y(.57),bellyY=Y(.71),hipY=Y(.87);
+  const [chW,chD0]=ellWD(m.chest,fem?1.3:1.4),chD=chD0*(fem?1.08:1);
+  const rw=clamp(1.45-(m.waist/H-.45)*2.2,1,1.45);
+  const [waW,waD]=ellWD(m.waist,rw);
+  const [hiW,hiD]=ellWD(m.hips,fem?1.28:1.36);
+  const bW=Math.max(waW*1.02,(waW+hiW)/2),bD=waD*1.05;
+  const neckR=(fem?5.2:6.1)*S;
+  const armR=(m.chest*.31-(fem?2:0))/(2*Math.PI)*S;
+  const thighR=(m.hips*(fem?.6:.57))/(2*Math.PI)*S;
+  return{p,H,fem,m,top,headH,headW,chin,shoulderY,crotchY,chestY,ubY,waistY,bellyY,hipY,chW,chD,waW,waD,hiW,hiD,bW,bD,neckR,armR,thighR,
+    kneeY:FLOOR-.285*H*S,calfY:FLOOR-.21*H*S,ankY:FLOOR-.045*H*S};
+}
+function frontView(g,cx){
+  const {m,H}=g,parts=[];
+  const ub=(g.chW*.5+g.waW*.5);
+  parts.push(tube([
+    {x:cx,y:g.chin-1.5*S,r:g.neckR},
+    {x:cx,y:g.chin+(g.shoulderY-g.chin)*.45,r:g.neckR*1.05},
+    {x:cx,y:g.shoulderY-1.6*S,r:m.shoulder/2*S*.7},
+    {x:cx,y:g.shoulderY+2.2*S,r:m.shoulder/2*S-g.armR*.6},
+    {x:cx,y:g.chestY,r:Math.max(g.chW/2*S,m.shoulder/2*S-g.armR*.95)},
+    {x:cx,y:g.ubY,r:ub/2*S},
+    {x:cx,y:g.waistY,r:g.waW/2*S},
+    {x:cx,y:g.bellyY,r:g.bW/2*S},
+    {x:cx,y:g.hipY,r:g.hiW/2*S},
+    {x:cx,y:g.crotchY,r:g.hiW/2*S*.9}
+  ],{end:false}));
+  const hw=g.hiW/2*S;
+  [-1,1].forEach(k=>{
+    const tR=g.thighR,kneeX=cx+k*Math.max(tR*.78,hw*.4),ankX=cx+k*Math.max(tR*.5,hw*.3);
+    parts.push(tube([
+      {x:cx+k*(hw-tR*.98),y:g.hipY,r:tR*1.04},
+      {x:cx+k*(hw-tR*1.02),y:g.crotchY+3*S,r:tR},
+      {x:(cx+k*(hw-tR)+kneeX)/2,y:(g.crotchY+g.kneeY)/2,r:tR*.84},
+      {x:kneeX,y:g.kneeY,r:tR*.6},
+      {x:(kneeX+ankX)/2+k*.4*S,y:g.calfY,r:tR*.66},
+      {x:ankX,y:g.ankY,r:tR*.33}
+    ],{end:false}));
+    const fw=4.6*S;
+    parts.push({o:`M${f1(ankX-fw*.6)},${f1(g.ankY)} L${f1(ankX+fw*.6)},${f1(g.ankY)} Q${f1(ankX+k*1.2*S+fw)},${f1(FLOOR-1)} ${f1(ankX+k*1.2*S+fw*.8)},${f1(FLOOR)} L${f1(ankX+k*1.2*S-fw*.8)},${f1(FLOOR)} Q${f1(ankX+k*1.2*S-fw)},${f1(FLOOR-1)} ${f1(ankX-fw*.6)},${f1(g.ankY)} Z`,
+      m:`M${f1(ankX-fw*.75)},${f1(FLOOR-3*S)} L${f1(ankX+fw*.75)},${f1(FLOOR-3*S)} M${f1(ankX+k*.6*S)},${f1(g.ankY)} L${f1(ankX+k*1.2*S)},${f1(FLOOR)} `});
+    const aR=g.armR,shX=cx+k*(m.shoulder/2*S-aR*.9),shY=g.shoulderY+1.2*S,al=m.arm*S;
+    const wristX=cx+k*Math.max(m.shoulder/2*S+1*S,Math.max(g.hiW,g.bW)/2*S+aR*.7+1.5*S);
+    const elX=shX+(wristX-shX)*.55+k*.6*S;
+    parts.push(tube([
+      {x:shX,y:shY+.4*S,r:aR*1.18},
+      {x:shX+(elX-shX)*.35,y:shY+al*.2,r:aR*1.04},
+      {x:elX,y:shY+al*.53,r:aR*.78},
+      {x:elX+(wristX-elX)*.45,y:shY+al*.72,r:aR*.84},
+      {x:wristX,y:shY+al,r:aR*.52},
+      {x:wristX+k*.3*S,y:shY+al+.05*H*S,r:aR*.62},
+      {x:wristX+k*.2*S,y:shY+al+.095*H*S,r:aR*.3}
+    ],{start:true}));
+  });
+  parts.push(headMesh(cx,g.top+g.headH/2*S,g.headW/2*S,g.headH/2*S));
+  return parts;
+}
+function sideView(g,xs){
+  const {m,H}=g,parts=[];
+  const ubD=(g.chD+g.waD)/2;
+  const T=(back,D,y)=>({x:xs+back-D/2,y,r:D/2});
+  const nD=g.neckR*2;
+  parts.push(tube([
+    T(g.neckR*1.1,nD,g.chin-1.5*S),
+    T(g.neckR*1.05,nD*1.05,g.chin+(g.shoulderY-g.chin)*.45),
+    T(g.chD*S*.46,g.chD*S*.86,g.shoulderY+1*S),
+    T(g.chD*S*.5,g.chD*S,g.chestY),
+    T(ubD*S*.42,ubD*S,g.ubY),
+    T(g.waD*S*.38,g.waD*S,g.waistY),
+    T(g.waD*S*.4,g.bD*S,g.bellyY),
+    T(g.hiD*S*.5,g.hiD*S,g.hipY),
+    T(g.hiD*S*.42,g.hiD*S*.84,g.crotchY)
+  ],{end:false}));
+  const tR=g.thighR,legC=xs+g.hiD*S*.08;
+  parts.push(tube([
+    {x:legC,y:g.hipY,r:tR*1.05},
+    {x:legC-.4*S,y:g.crotchY+3*S,r:tR},
+    {x:xs-.6*S,y:(g.crotchY+g.kneeY)/2,r:tR*.84},
+    {x:xs-.8*S,y:g.kneeY,r:tR*.6},
+    {x:xs+1.4*S,y:g.calfY,r:tR*.68},
+    {x:xs+.4*S,y:g.ankY,r:tR*.34}
+  ],{end:false}));
+  const heel=xs+tR*.34+2*S,toe=xs-.11*H*S;
+  parts.push({o:`M${f1(heel-1.2*S)},${f1(g.ankY)} Q${f1(heel+.6*S)},${f1(FLOOR-2*S)} ${f1(heel)},${f1(FLOOR)} L${f1(toe+2*S)},${f1(FLOOR)} Q${f1(toe-1*S)},${f1(FLOOR-1.6*S)} ${f1(toe+3*S)},${f1(FLOOR-3.6*S)} L${f1(xs-tR*.34)},${f1(g.ankY)} Z`,
+    m:`M${f1(heel)},${f1(FLOOR-3*S)} L${f1(toe+2.5*S)},${f1(FLOOR-3*S)} M${f1(xs-3*S)},${f1(g.ankY+2*S)} L${f1(xs-4*S)},${f1(FLOOR)} `});
+  const aR=g.armR,shY=g.shoulderY+1.2*S,al=m.arm*S,shX=xs+g.chD*S*.05;
+  parts.push(tube([
+    {x:shX,y:shY+.2*S,r:aR*1.25},
+    {x:shX+.4*S,y:shY+al*.2,r:aR*1.04},
+    {x:xs+1.2*S,y:shY+al*.53,r:aR*.78},
+    {x:xs-.4*S,y:shY+al*.72,r:aR*.82},
+    {x:xs-2.4*S,y:shY+al,r:aR*.5},
+    {x:xs-3*S,y:shY+al+.05*H*S,r:aR*.6},
+    {x:xs-3.4*S,y:shY+al+.095*H*S,r:aR*.28}
+  ],{start:true}));
+  const hcx=xs-.6*S,hcy=g.top+g.headH/2*S,hrx=.105*H/2*S,hry=g.headH/2*S;
+  const hd=headMesh(hcx,hcy,hrx,hry);
+  hd.o+=`M${f1(hcx-hrx+.4*S)},${f1(hcy-.05*hry)} L${f1(hcx-hrx-1.6*S)},${f1(hcy+.22*hry)} L${f1(hcx-hrx+.2*S)},${f1(hcy+.3*hry)} `;
+  hd.m+=`M${f1(hcx+hrx*.15)},${f1(hcy-.1*hry)} a${f1(1.6*S)} ${f1(2.6*S)} 0 1 0 0.1,0 `;
+  parts.push(hd);
+  return{parts,backAt:{chest:xs+g.chD*S*.5,waist:xs+g.waD*S*.38,hips:xs+g.hiD*S*.5}};
+}
+const HEART='M0,8 C-12,0 -10,-10 -4,-9 C-1,-9 0,-6 0,-4 C0,-6 1,-9 4,-9 C10,-10 12,0 0,8 Z';
+function avatar(){
+  const g=geometry(state),FX=100,SX=278;
+  const fr=frontView(g,FX),sd=sideView(g,SX);
+  const all=fr.concat(sd.parts);
+  const O=all.map(x=>x.o).join(' '),SK=all.map(x=>x.s||x.o).join(' '),M=all.map(x=>x.m).join(' ');
+  const L=o=>loadOf(state.organs[o]);
+  const og=(o,shape)=>{const l=L(o);const cls=['organ',state.sel===o?'sel':'',l>60?'hot':'',flash.has(o)?'flash':''].join(' ');
+    return `<g class="${cls}" data-o="${o}" tabindex="0" role="button" aria-label="${ORG[o].name}, нагрузка ${Math.round(l)} из 100"><g fill="${col(l)}" fill-opacity=".34" stroke="${col(l)}" stroke-width="1.4">${shape}</g></g>`};
+  const lungX=g.chW*.22*S,lungRx=g.chW*.17*S,lungRy=(g.ubY-g.shoulderY)*.46,lungY=(g.shoulderY+g.ubY)/2+1*S;
+  const hs=g.chW*S*.11/10;
+  const livX=FX-g.waW*.12*S,livY=g.ubY+(g.waistY-g.ubY)*.42,livRx=g.waW*.27*S,livRy=(g.waistY-g.ubY)*.3;
+  const gutRx=g.bW*.3*S,gutRy=(g.hipY-g.waistY)*.36,gutY=(g.waistY+g.hipY)/2;
+  const organs=
+    og('brain',`<ellipse cx="${FX}" cy="${f1(g.top+g.headH*.32*S)}" rx="${f1(g.headW*.34*S)}" ry="${f1(g.headH*.19*S)}"/>`)+
+    og('lungs',`<ellipse cx="${f1(FX-lungX)}" cy="${f1(lungY)}" rx="${f1(lungRx)}" ry="${f1(lungRy)}"/><ellipse cx="${f1(FX+lungX)}" cy="${f1(lungY)}" rx="${f1(lungRx)}" ry="${f1(lungRy)}"/>`)+
+    og('heart',`<path transform="translate(${f1(FX+g.chW*.07*S)} ${f1(g.chestY+(g.ubY-g.chestY)*.45)}) scale(${hs.toFixed(3)})" d="${HEART}"/>`)+
+    og('liver',`<path d="M${f1(livX-livRx)},${f1(livY-livRy*.3)} C${f1(livX-livRx*.4)},${f1(livY-livRy*1.3)} ${f1(livX+livRx*.8)},${f1(livY-livRy*1.1)} ${f1(livX+livRx)},${f1(livY-livRy*.4)} C${f1(livX+livRx*.6)},${f1(livY+livRy*.5)} ${f1(livX-livRx*.2)},${f1(livY+livRy*1.1)} ${f1(livX-livRx*.85)},${f1(livY+livRy*.7)} C${f1(livX-livRx*1.1)},${f1(livY+livRy*.3)} ${f1(livX-livRx*1.05)},${f1(livY)} ${f1(livX-livRx)},${f1(livY-livRy*.3)} Z"/>`)+
+    og('meta',`<ellipse cx="${FX}" cy="${f1(gutY)}" rx="${f1(gutRx)}" ry="${f1(gutRy)}"/><path d="M${f1(FX-gutRx*.6)},${f1(gutY-gutRy*.2)} Q${f1(FX)},${f1(gutY+gutRy*.5)} ${f1(FX+gutRx*.6)},${f1(gutY-gutRy*.2)} M${f1(FX-gutRx*.5)},${f1(gutY+gutRy*.35)} Q${f1(FX)},${f1(gutY-gutRy*.3)} ${f1(FX+gutRx*.5)},${f1(gutY+gutRy*.35)}" fill="none"/>`);
+  const ms=measures(state);
+  const hud=[['грудь',g.chestY,ms.chest,sd.backAt.chest],['талия',g.waistY,ms.waist,sd.backAt.waist],['бёдра',g.hipY,ms.hips,sd.backAt.hips]]
+    .map(([n,y,v,bx])=>`<line x1="${f1(bx+4)}" x2="334" y1="${f1(y)}" y2="${f1(y)}" stroke="var(--holo)" stroke-width=".6" stroke-dasharray="2 3" opacity=".55"/><text x="378" y="${f1(y-2)}" text-anchor="end" class="hud">${n}</text><text x="378" y="${f1(y+9)}" text-anchor="end" class="hudv">${Math.round(v)} см</text>`).join('');
+  const hgt=`<line x1="12" x2="12" y1="${f1(g.top)}" y2="${FLOOR}" stroke="var(--holo)" stroke-width=".6" opacity=".45"/><line x1="8" x2="16" y1="${f1(g.top)}" y2="${f1(g.top)}" stroke="var(--holo)" stroke-width=".8"/><line x1="8" x2="16" y1="${FLOOR}" y2="${FLOOR}" stroke="var(--holo)" stroke-width=".8"/><text x="18" y="${f1(g.top+9)}" class="hudv">${state.p.h} см</text>`;
+  return `<svg viewBox="0 0 380 420" role="img" aria-label="Каркасный аватар: вид спереди и сбоку">
+    <defs>
+      <filter id="glow" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="oglow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <radialGradient id="floorg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--holo)" stop-opacity=".28"/><stop offset="1" stop-color="var(--holo)" stop-opacity="0"/></radialGradient>
+    </defs>
+    <ellipse cx="${FX}" cy="${FLOOR+2}" rx="70" ry="7" fill="url(#floorg)"/>
+    <ellipse cx="${SX-10}" cy="${FLOOR+2}" rx="62" ry="7" fill="url(#floorg)"/>
+    ${hgt}${hud}
+    <g filter="url(#glow)">
+      <path d="${O}" fill="var(--holo)" fill-opacity=".05" stroke="none"/>
+      <path d="${M}" fill="none" stroke="var(--holo)" stroke-width=".55" opacity=".5"/>
+      <path d="${SK}" fill="none" stroke="var(--holo)" stroke-width="1.25" stroke-linejoin="round"/>
+    </g>
+    <g filter="url(#oglow)">${organs}</g>
+    <text x="${FX}" y="418" text-anchor="middle" class="hud">спереди</text><text x="${SX-10}" y="418" text-anchor="middle" class="hud">сбоку</text>
+  </svg>`;
+}
+function renderMeas(){
+  const ms=measures(state),p=state.p;
+  const items=[['Плечи',ms.shoulder,p.shoulder],['Грудь',ms.chest,p.chest],['Талия',ms.waist,p.waist],['Бёдра',ms.hips,p.hips],['Рука',ms.arm,p.arm],['Нога',ms.leg,p.leg]];
+  $('#meas').innerHTML=items.map(([n,v,b])=>{const d=v-b;const ds=Math.abs(d)>=.5?`<em class="${d>0?'up':'down'}">${d>0?'+':'−'}${fmt(Math.abs(d),0)}</em>`:'';
+    return `<div class="ms"><span>${n}</span><b class="num">${Math.round(v)}</b>${ds}</div>`}).join('');
+}
+function renderStats(){
+  const p=state.p,d=state.weight-p.w,bmi=bmiOf(state.weight,p);
+  const sign=d>0.05?'+':d<-0.05?'−':'';
+  $('#stats').innerHTML=`
+    <div class="stat"><span>День</span><b class="num">${state.day}</b></div>
+    <div class="stat"><span>Вес, кг</span><b class="num">${fmt(state.weight)}${sign?` <small class="muted" style="font-size:.7rem">${sign}${fmt(Math.abs(d))}</small>`:''}</b></div>
+    <div class="stat"><span>ИМТ</span><b class="num">${fmt(bmi)}</b></div>
+    <div class="stat"><span>Индекс</span><b class="num">${Math.round(index(state))}</b></div>`;
+}
+function renderOrgans(){
+  $('#organs').innerHTML=ORDER.map(o=>{const l=loadOf(state.organs[o]);
+    return `<button class="org" type="button" data-o="${o}" aria-pressed="${state.sel===o}">
+      <span class="dot" style="background:${col(l)}"></span>
+      <span class="nm">${ORG[o].name}</span><span class="val num">${Math.round(l)}</span>
+      <span class="bar"><i style="width:${l}%;background:${col(l)}"></i></span><span class="rec">${dur(recovery(state,o))}</span>
+    </button>`}).join('');
+}
+function renderDetail(){
+  const o=state.sel,l=loadOf(state.organs[o]),[cls,lbl]=level(l);
+  const t=terms(o,baseDay(state.p)).filter(x=>Math.abs(x[1])>=.3).sort((a,b)=>b[1]-a[1]);
+  const mx=Math.max(1,...t.map(x=>Math.abs(x[1])));
+  const tl=TL[o],since=state.since[ORG[o].cue];
+  let nextMarked=false;
+  const steps=tl.steps.map(([dd,ti,de],i)=>{
+    const done=since<999&&since>=Math.max(1,dd);
+    let c=done?'done':'';
+    if(!done&&!nextMarked&&since<999){c='next';nextMarked=true}
+    return `<li class="${c}"><span class="mk">${done?'✓':i+1}</span><div><div class="t">${ti}</div><div class="d">${de}</div></div></li>`}).join('');
+  const sinceTxt=since>=999?`В анкете нет событий, от которых отсчитывать.`:since===0?`Отсчёт от ${tl.after}: сегодня.`:`С момента ${tl.after} прошло дней: <b class="num">${since}</b>.`;
+  const rec=recovery(state,o);
+  $('#detail').innerHTML=`
+    <div class="card-head"><h2>${ORG[o].name}</h2><span class="pill ${cls}">${lbl}</span></div>
+    <div class="big"><b class="num">${Math.round(l)}</b><span class="muted">из 100 · накопленная часть ${Math.round(Math.min(l,state.organs[o].C))}</span></div>
+    <div class="sub">Что нагружает в обычный день</div>
+    <div class="feeds">${t.length?t.map(([n,v])=>`<div class="feed ${v<0?'good':''}"><span>${n}</span><span class="b"><i style="width:${Math.abs(v)/mx*100}%"></i></span><span>${v<0?'−':'+'}${fmt(Math.abs(v))}</span></div>`).join(''):'<p class="muted" style="margin:0">Ничего заметного.</p>'}</div>
+    <div class="recov">Если убрать вредные привычки, до нормы: <b>${dur(rec)}</b></div>
+    <div class="sub">Восстановление</div>
+    <p class="muted" style="margin:0 0 10px;font-size:.84rem">${sinceTxt}</p>
+    <ol class="tl">${steps}</ol>`;
+}
+function renderChart(){
+  const h=state.hist,n=h.length,W=320,H=130,pl=24,pr=8,pt=8,pb=18;
+  const x=i=>pl+(n<2?0:(i/(n-1))*(W-pl-pr)),y=v=>pt+(1-v/100)*(H-pt-pb);
+  const pts=h.map((p,i)=>`${x(i).toFixed(1)},${y(p.idx).toFixed(1)}`).join(' ');
+  const grid=[0,25,50,75,100].map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text class="axis" x="${pl-5}" y="${y(v)+3}" text-anchor="end">${v}</text>`).join('');
+  const last=h[n-1];
+  const area=n>1?`<polygon points="${x(0)},${y(0)} ${pts} ${x(n-1)},${y(0)}" fill="var(--accent)" opacity=".12"/>`:'';
+  $('#chart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Индекс здоровья по дням">${grid}${area}
+    ${n>1?`<polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>`:''}
+    <circle cx="${x(n-1)}" cy="${y(last.idx)}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+    <text class="axis" x="${pl}" y="${H-4}">день ${Math.max(0,state.day-n+1)}</text><text class="axis" x="${W-pr}" y="${H-4}" text-anchor="end">день ${state.day}</text></svg>`;
+  const first=h[0];const dd=last.idx-first.idx;
+  $('#chartNote').textContent=n>1?`${dd>=0?'+':'−'}${fmt(Math.abs(dd))} за ${n-1} дн.`:'отметь первый день';
+}
+
+const STP=[['beer','Пиво 0,5 л, банки',0,10,1],['cig','Сигареты',0,60,1],['vape','Вейп, затяжки',0,800,20],['coffee','Кофе, чашки',0,12,1],['energy','Энергетики',0,6,1]];
+const SLD=[['sleep','Сон, ч',3,11,.5],['steps','Шаги, тыс.',0,25,.5],['sit','Сидел, ч',0,16,.5],['screen','Экран перед сном, ч',0,5,.5],['stress','Стресс, 0–10',0,10,1]];
+function renderToday(){
+  $('#todayTitle').textContent='День '+(state.day+1);
+  $('#todayDate').textContent='сон по анкете '+fmt(sleepH(state.p))+' ч';
+  $('#steppers').innerHTML=STP.map(([k,l])=>`<div class="stp"><label id="lb-${k}">${l}</label><div class="ctl"><button type="button" data-st="${k}" data-dir="-1" aria-label="Меньше: ${l}">−</button><output id="o-${k}" aria-labelledby="lb-${k}">${today[k]}</output><button type="button" data-st="${k}" data-dir="1" aria-label="Больше: ${l}">+</button></div></div>`).join('');
+  $('#sliders').innerHTML=SLD.map(([k,l,a,b,s])=>`<div class="sl"><label for="s-${k}">${l}</label><output id="so-${k}">${fmt(today[k],s<1?1:0)}</output><input id="s-${k}" type="range" min="${a}" max="${b}" step="${s}" value="${today[k]}" data-sl="${k}"></div>`).join('');
+  $('#toggles').innerHTML=`<button class="tg" type="button" data-tg="sport" aria-pressed="${today.sport>0}">Была тренировка</button><button class="tg" type="button" data-tg="late" aria-pressed="${today.late>0}">Ел поздно</button>`;
+}
+function renderAll(){
+  $('#figure').innerHTML=avatar();
+  renderMeas();renderStats();renderOrgans();renderDetail();renderChart();
+  flash.clear();
+}
+
+let toastT;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3600)}
+function logDays(d,n,label){
+  try{window.Telegram&&Telegram.WebApp&&Telegram.WebApp.HapticFeedback.impactOccurred(n>1?'heavy':'medium')}catch(e){}
+  const before={};ORDER.forEach(o=>before[o]=loadOf(state.organs[o]));
+  for(let i=0;i<n;i++)step(state,d);
+  const ch=ORDER.map(o=>[o,loadOf(state.organs[o])-before[o]]).filter(x=>Math.abs(x[1])>=.5).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+  ch.forEach(([o,v])=>{if(v>0)flash.add(o)});
+  if(ch.length)state.sel=ch[0][0];
+  toast(label+(ch.length?' · '+ch.slice(0,3).map(([o,v])=>`${ORG[o].name} ${v>0?'+':'−'}${Math.round(Math.abs(v))||'<1'}`).join(' · '):' · без заметных изменений'));
+  save();renderAll();renderToday();
+}
+
+/* events */
+document.addEventListener('click',e=>{
+  const og=e.target.closest('[data-o]');
+  if(og){state.sel=og.dataset.o;save();renderAll();if(og.classList.contains('org')&&window.innerWidth<880)$('#detail').scrollIntoView({behavior:'smooth',block:'start'});return}
+  const st=e.target.closest('[data-st]');
+  if(st){const k=st.dataset.st,cfg=STP.find(x=>x[0]===k);today[k]=clamp(today[k]+Number(st.dataset.dir)*cfg[4],cfg[2],cfg[3]);$('#o-'+k).textContent=today[k];return}
+  const tg=e.target.closest('[data-tg]');
+  if(tg){const k=tg.dataset.tg;today[k]=today[k]>0?0:1;tg.setAttribute('aria-pressed',today[k]>0);return}
+});
+document.addEventListener('keydown',e=>{
+  const og=e.target.closest&&e.target.closest('svg [data-o]');
+  if(og&&(e.key==='Enter'||e.key===' ')){e.preventDefault();state.sel=og.dataset.o;save();renderAll();const n=document.querySelector(`svg [data-o="${state.sel}"]`);n&&n.focus()}
+});
+document.addEventListener('input',e=>{
+  const k=e.target.dataset&&e.target.dataset.sl;
+  if(k){today[k]=Number(e.target.value);const s=SLD.find(x=>x[0]===k)[4];$('#so-'+k).textContent=fmt(today[k],s<1?1:0)}
+});
+$('#same').addEventListener('click',()=>logDays(baseDay(state.p),1,`День ${state.day+1}: как обычно`));
+$('#saveDay').addEventListener('click',()=>{const d={...today,alc:today.beer*BEER};logDays(d,1,`День ${state.day+1} записан`);today=typicalToday(state.p);renderToday();$('#custom').open=false});
+$('#w7same').addEventListener('click',()=>logDays(baseDay(state.p),30,'+30 дней как обычно'));
+$('#w7clean').addEventListener('click',()=>logDays(cleanDay(state.p),30,'+30 дней без вредных привычек'));
+
+const FIELDS=['sex','h','w','shoulder','chest','waist','hips','arm','leg','sport','sportYears','steps','sit','bed','wake','meal','screen','stress','beer','alcYears','cig','cigYears','vape','vapeYears','coffee','energy'];
+function fillForm(){FIELDS.forEach(k=>{const el=$('#f-'+k);if(el)el.value=state.p[k]})}
+$('#form').addEventListener('submit',e=>{
+  e.preventDefault();
+  const p={};FIELDS.forEach(k=>{const v=$('#f-'+k).value;p[k]=['sex','bed','wake','meal'].includes(k)?v:Number(v)||0});
+  p.h=clamp(p.h||175,130,220);p.w=clamp(p.w||75,35,250);
+  const dflt={shoulder:p.sex==='f'?39:46,chest:p.sex==='f'?92:100,waist:p.sex==='f'?74:88,hips:p.sex==='f'?100:100,arm:Math.round(p.h*.33),leg:Math.round(p.h*.455)};
+  Object.keys(dflt).forEach(k=>{if(!p[k])p[k]=dflt[k]});
+  if(!p.bed)p.bed='23:00';if(!p.wake)p.wake='07:00';if(!p.meal)p.meal='19:00';
+  state=create(p);today=typicalToday(p);save();renderAll();renderToday();
+  toast('Двойник пересоздан по анкете');
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+fillForm();renderAll();renderToday();
+})();
+</script>
+<script>
+(function(){var tg=window.Telegram&&window.Telegram.WebApp;if(!tg)return;
+tg.ready();tg.expand();
+try{tg.setHeaderColor('#06111A');tg.setBackgroundColor('#06111A');tg.setBottomBarColor&&tg.setBottomBarColor('#06111A')}catch(e){}
+try{tg.disableVerticalSwipes&&tg.disableVerticalSwipes()}catch(e){}
+})();
+</script>
+</body>
+</html>
