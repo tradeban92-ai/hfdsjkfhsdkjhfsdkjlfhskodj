@@ -124,6 +124,13 @@ svg .organ.flash{animation:flash .9s ease-out}
 .primary:active{transform:translateY(1px)}
 .duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .primary.healthy{background:var(--ok);color:var(--accent-ink)}
+.wbox{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
+.wtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.wlbl{font-weight:700}
+#wHint{font-size:.78rem}
+.wrow{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;gap:6px;align-items:center}
+.wrow button{font:inherit;font-weight:700;font-size:.86rem;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:10px;padding:9px 10px;cursor:pointer;min-width:46px}
+.wrow output{text-align:center;font-family:var(--font-display);font-size:1.35rem}
 .hsep{border:0;border-top:1px solid var(--line);margin:8px 0 0}
 details.box{border:1px solid var(--line);border-radius:12px;margin-top:12px}
 details.box>summary{list-style:none;padding:12px 14px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
@@ -192,6 +199,17 @@ details.box[open]>summary::after{content:"–"}
         <div class="duo">
           <button class="primary" id="same" type="button">Делал всё то же самое<small>Обычный день по анкете</small></button>
           <button class="primary healthy" id="healthy" type="button">Здоровый день<small>Как в твоём эталоне</small></button>
+        </div>
+        <div class="wbox">
+          <div class="wtop"><span class="wlbl">Мой вес сегодня</span><span class="muted num" id="wHint"></span></div>
+          <div class="wrow" id="wrow">
+            <button type="button" data-wd="-1" aria-label="Минус 1 кг">−1</button>
+            <button type="button" data-wd="-0.1" aria-label="Минус 100 грамм">−0,1</button>
+            <output id="wOut" class="num" aria-live="polite"></output>
+            <button type="button" data-wd="0.1" aria-label="Плюс 100 грамм">+0,1</button>
+            <button type="button" data-wd="1" aria-label="Плюс 1 кг">+1</button>
+          </div>
+          <button type="button" class="save" id="wSave">Записать вес</button>
         </div>
         <details class="box" id="custom">
           <summary>Сегодня было иначе</summary>
@@ -859,7 +877,11 @@ function renderChart(){
 
 const STP=[['ff','Фастфуд и сладкое, порции',0,6,1],['beer','Пиво 0,5 л, банки',0,10,1],['cig','Сигареты',0,60,1],['vape','Вейп, затяжки',0,800,20],['coffee','Кофе, чашки',0,12,1],['energy','Энергетики',0,6,1]];
 const SLD=[['sleep','Сон, ч',3,11,.5],['steps','Шаги, тыс.',0,25,.5],['sit','Сидел, ч',0,16,.5],['screen','Экран перед сном, ч',0,5,.5],['stress','Стресс, 0–10',0,10,1]];
+let wDraft=null;
+function showW(){const d=wDraft-state.weight;$('#wOut').textContent=fmt(wDraft)+' кг';
+  $('#wHint').textContent=Math.abs(d)<.05?'сейчас в модели '+fmt(state.weight)+' кг':(d>0?'+':'−')+fmt(Math.abs(d))+' кг к модели'}
 function renderToday(){
+  wDraft=Math.round(state.weight*10)/10;showW();
   $('#todayTitle').textContent='День '+(state.day+1);
   $('#todayDate').textContent='сон по анкете '+fmt(sleepH(state.p))+' ч';
   $('#steppers').innerHTML=STP.map(([k,l])=>`<div class="stp"><label id="lb-${k}">${l}</label><div class="ctl"><button type="button" data-st="${k}" data-dir="-1" aria-label="Меньше: ${l}">−</button><output id="o-${k}" aria-labelledby="lb-${k}">${today[k]}</output><button type="button" data-st="${k}" data-dir="1" aria-label="Больше: ${l}">+</button></div></div>`).join('');
@@ -907,6 +929,14 @@ document.addEventListener('input',e=>{
 $('#same').addEventListener('click',()=>logDays(baseDay(state.p),1,`День ${state.day+1}: как обычно`));
 $('#saveDay').addEventListener('click',()=>{const d={...today,alc:today.beer*BEER};logDays(d,1,`День ${state.day+1} записан`);today=typicalToday(state.p);renderToday();$('#custom').open=false});
 $('#orgToggle').addEventListener('click',()=>{state.showOrg=!state.showOrg;save();renderAll()});
+$('#wrow').addEventListener('click',e=>{const b=e.target.closest('[data-wd]');if(!b)return;wDraft=clamp(Math.round((wDraft+Number(b.dataset.wd))*10)/10,35,250);showW()});
+$('#wSave').addEventListener('click',()=>{
+  const before=measures(state).waist;state.weight=wDraft;
+  if(state.hist.length)state.hist[state.hist.length-1].w=state.weight;
+  save();renderAll();renderToday();
+  const dw=measures(state).waist-before;
+  toast(`Вес записан: ${fmt(state.weight)} кг`+(Math.abs(dw)>=.5?` · талия ${dw>0?'+':'−'}${fmt(Math.abs(dw),0)} см`:''));
+});
 $('#healthy').addEventListener('click',()=>logDays(healthyDay(state.p),1,`День ${state.day+1}: здоровый день`));
 
 const FIELDS=['sex','h','w','shoulder','chest','waist','hips','arm','leg','sport','sportYears','steps','sit','bed','wake','meal','screen','stress','beer','alcYears','cig','cigYears','vape','vapeYears','coffee','energy','fastfood'];
