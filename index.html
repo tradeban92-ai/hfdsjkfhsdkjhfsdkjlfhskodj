@@ -54,6 +54,10 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 /* stage */
 .stage{display:grid;gap:14px}
 .figure{background:radial-gradient(ellipse at 50% 30%,#FFF5DE 0%,#F4DBA9 100%);border:1px solid var(--line);border-radius:14px;padding:8px 6px 0;overflow:hidden}
+.upl{display:inline-flex;align-items:center;justify-content:center;width:100%;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-family:var(--font-display);font-weight:500;padding:12px;cursor:pointer}
+.pbox{margin-top:10px;display:grid;gap:6px}
+.pbox canvas{max-width:100%;max-height:320px;width:auto;height:auto;border-radius:10px;border:1px solid var(--line);justify-self:center;cursor:crosshair}
+.fld input[type=color]{height:38px;padding:3px 6px}
 .otoggle{font:inherit;font-size:.8rem;font-weight:600;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
 .otoggle[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .lnote{display:flex;flex-wrap:wrap;gap:6px}
@@ -205,6 +209,22 @@ details.box[open]>summary::after{content:"–"}
         <div id="chart"></div>
       </section>
 
+      <section class="card" id="likeMe">
+        <div class="card-head"><h2>Похож на меня</h2><button type="button" class="otoggle" id="lookReset">Сбросить</button></div>
+        <p class="note" style="margin:0 0 10px">Загрузи фото лица анфас при дневном свете. Приложение само определит форму лица, цвет кожи, волос и глаз. Фото обрабатывается на телефоне, никуда не отправляется и не сохраняется.</p>
+        <label class="upl" for="photo">Загрузить фото</label><input id="photo" type="file" accept="image/*" hidden>
+        <div id="photoBox" class="pbox" hidden><canvas id="pcv" aria-label="Загруженное фото"></canvas><p id="pstatus" class="note" aria-live="polite"></p></div>
+        <form class="form" id="lookForm" style="margin-top:12px" onsubmit="return false">
+          <label class="fld">Форма лица<select id="lk-face"><option value="oval">Овальное</option><option value="round">Круглое</option><option value="square">Квадратное</option><option value="long">Вытянутое</option><option value="heart">Сердечком</option></select></label>
+          <label class="fld">Причёска<select id="lk-style"><option value="short">Короткая</option><option value="buzz">Ёжик</option><option value="bob">Каре</option><option value="long">Длинные</option><option value="bald">Без волос</option></select></label>
+          <label class="fld">Борода<select id="lk-beard"><option value="none">Нет</option><option value="stubble">Щетина</option><option value="short">Короткая</option><option value="full">Густая</option></select></label>
+          <label class="fld">Очки<select id="lk-glasses"><option value="none">Нет</option><option value="round">Круглые</option><option value="rect">Прямоугольные</option></select></label>
+          <label class="fld">Цвет кожи<input id="lk-skin" type="color"></label>
+          <label class="fld">Цвет волос<input id="lk-hair" type="color"></label>
+          <label class="fld">Цвет глаз<input id="lk-eye" type="color"></label>
+        </form>
+      </section>
+
       <section class="card">
         <details class="box" style="margin:0;border:0" id="anketa">
           <summary style="padding:0"><h2>Анкета</h2></summary>
@@ -212,7 +232,6 @@ details.box[open]>summary::after{content:"–"}
             <form class="form" id="form">
               <div class="fgroup">Тело</div>
               <label class="fld">Пол<select id="f-sex"><option value="m">Мужской</option><option value="f">Женский</option></select></label>
-              <label class="fld">Форма лица<select id="f-face"><option value="oval">Овальное</option><option value="round">Круглое</option><option value="square">Квадратное</option><option value="long">Вытянутое</option><option value="heart">Сердечком</option></select></label>
               <label class="fld">Рост, см<input id="f-h" type="number" min="130" max="220" inputmode="numeric"></label>
               <label class="fld">Вес, кг<input id="f-w" type="number" min="35" max="250" step="0.1" inputmode="decimal"></label>
               <div class="fgroup">Размеры, см</div>
@@ -543,6 +562,10 @@ function cartoon(showOrg,look){
     shirt:'#2B2E35',shirtS:'#1C1E23',shirtL:'#0B0C0F',shirtH:'#4B505B',rib:'#3C4049',
     pants:'#F4F5F7',pantsS:'#D6DAE0',pantsL:'#8C94A0',
     hair:fem?'#6A3A1F':'#3A2416',hairH:fem?'#8E5531':'#5C3A24',hairL:fem?'#40220F':'#21140B'};
+  const LK=lookParams(state.p);
+  C.skin=LK.skin;C.skinS=mixHex(LK.skin,'#7A4A32',.24);C.skinL=mixHex(LK.skin,'#3A2014',.55);
+  C.hair=LK.hair;C.hairH=mixHex(LK.hair,'#FFFFFF',.2);C.hairL=mixHex(LK.hair,'#000000',.5);
+  const HS=LK.style,longish=HS==='long'||HS==='bob',HL=HS==='bob'?.55:1;
   const LW=1.8;
   const bad=(L.smoke+L.alc+L.food+L.sleep)/4;
   const sallow=clamp(L.smoke*.24+L.alc*.1+L.sleep*.05+L.food*.04-L.sport*.06,0,.85);
@@ -617,7 +640,7 @@ function cartoon(showOrg,look){
   const faceD=`M${f1(hx-rx*F.fw)},${f1(hy-ry*.15)} C${f1(hx-rx*F.fw)},${f1(hy-ry*1.08)} ${f1(hx+rx*F.fw)},${f1(hy-ry*1.08)} ${f1(hx+rx*F.fw)},${f1(hy-ry*.15)} C${f1(hx+rx*F.fw*1.01)},${f1(hy+ry*.5)} ${f1(hx+rx*F.jw)},${f1(hy+ry*.9)} ${f1(hx+rx*F.cw)},${f1(hy+ry*.99)} Q${f1(hx)},${f1(hy+ry*1.04)} ${f1(hx-rx*F.cw)},${f1(hy+ry*.99)} C${f1(hx-rx*F.jw)},${f1(hy+ry*.9)} ${f1(hx-rx*F.fw*1.01)},${f1(hy+ry*.5)} ${f1(hx-rx*F.fw)},${f1(hy-ry*.15)} Z`;
   const ear=k=>{const ex=hx+k*rx*F.fw*.97,ey=hy+ry*.08;return `<ellipse cx="${f1(ex)}" cy="${f1(ey)}" rx="${f1(rx*.15)}" ry="${f1(ry*.2)}" fill="${C.skin}" stroke="${C.skinL}" stroke-width="${LW}"/><path d="M${f1(ex+k*rx*.02)},${f1(ey-ry*.09)} q${f1(k*rx*.07)},${f1(ry*.08)} 0,${f1(ry*.17)}" fill="none" stroke="${C.skinS}" stroke-width="1.4" stroke-linecap="round"/>`};
   const eyeY=hy+ry*.08,eyeX=rx*.37,eRx=h.rx*.085,eRy=h.ry*.105;
-  const eye=(sx,sc=1)=>`<ellipse cx="${f1(sx)}" cy="${f1(eyeY)}" rx="${f1(eRx*sc)}" ry="${f1(eRy)}" fill="#2A1C14"/><circle cx="${f1(sx+eRx*.35*sc)}" cy="${f1(eyeY-eRy*.4)}" r="${f1(eRx*.38)}" fill="#FFFFFF"/>${fem?`<path d="M${f1(sx+eRx*.6*sc)},${f1(eyeY-eRy*.7)} l${f1(eRx*.9)},${f1(-eRy*.35)}" stroke="#2A1C14" stroke-width="1.4" stroke-linecap="round"/>`:''}`;
+  const eye=(sx,sc=1)=>`<ellipse cx="${f1(sx)}" cy="${f1(eyeY)}" rx="${f1(eRx*sc)}" ry="${f1(eRy)}" fill="${mixHex(LK.eye,'#000000',.12)}"/><ellipse cx="${f1(sx)}" cy="${f1(eyeY+eRy*.05)}" rx="${f1(eRx*.58*sc)}" ry="${f1(eRy*.6)}" fill="#140D08"/><circle cx="${f1(sx+eRx*.35*sc)}" cy="${f1(eyeY-eRy*.4)}" r="${f1(eRx*.38)}" fill="#FFFFFF"/>${fem?`<path d="M${f1(sx+eRx*.6*sc)},${f1(eyeY-eRy*.7)} l${f1(eRx*.9)},${f1(-eRy*.35)}" stroke="#2A1C14" stroke-width="1.4" stroke-linecap="round"/>`:''}`;
   const lid=(sx,sc=1)=>{if(L.sleep<2)return'';const cut=L.sleep>=3?.25:-.15,a=eRx*1.25*sc;return `<path d="M${f1(sx-a)},${f1(eyeY+eRy*cut)} Q${f1(sx)},${f1(eyeY-eRy*1.9)} ${f1(sx+a)},${f1(eyeY+eRy*cut)} Z" fill="${C.skin}"/><path d="M${f1(sx-a)},${f1(eyeY+eRy*cut)} Q${f1(sx)},${f1(eyeY+eRy*(cut-.35))} ${f1(sx+a)},${f1(eyeY+eRy*cut)}" fill="none" stroke="${C.skinL}" stroke-width="1.4" stroke-linecap="round"/>`};
   const circleOp=L.sleep*.16+L.stress*.03+L.alc*.04;
   const circles=(sx,sc=1)=>{if(circleOp<.05)return'';const a=eRx*1.3*sc;return `<path d="M${f1(sx-a)},${f1(eyeY+eRy*.9)} Q${f1(sx)},${f1(eyeY+eRy*2.6)} ${f1(sx+a)},${f1(eyeY+eRy*.9)} Q${f1(sx)},${f1(eyeY+eRy*1.7)} ${f1(sx-a)},${f1(eyeY+eRy*.9)} Z" fill="#6E4F7E" opacity="${circleOp.toFixed(2)}"/>`};
@@ -639,13 +662,14 @@ function cartoon(showOrg,look){
   const blushO=clamp(.12+L.sport*.08-sallow*.15,0,.4).toFixed(2);
   const blush=`<ellipse cx="${f1(hx-rx*.55)}" cy="${f1(hy+ry*.42)}" rx="${f1(rx*.13)}" ry="${f1(ry*.06)}" fill="#E8826B" opacity="${blushO}"/><ellipse cx="${f1(hx+rx*.55)}" cy="${f1(hy+ry*.42)}" rx="${f1(rx*.13)}" ry="${f1(ry*.06)}" fill="#E8826B" opacity="${blushO}"/>`;
   const R=h.rx,RY=h.ry;
-  const hairBack=fem?`<path d="M${f1(hx-R*1.15)},${f1(hy-RY*.1)} C${f1(hx-R*1.28)},${f1(hy-RY*1.4)} ${f1(hx+R*1.28)},${f1(hy-RY*1.4)} ${f1(hx+R*1.15)},${f1(hy-RY*.1)} C${f1(hx+R*1.25)},${f1(hy+RY*.9)} ${f1(hx+R*1.35)},${f1(hy+RY*1.55)} ${f1(hx+R*1.05)},${f1(hy+RY*1.75)} Q${f1(hx)},${f1(hy+RY*1.62)} ${f1(hx-R*1.05)},${f1(hy+RY*1.75)} C${f1(hx-R*1.35)},${f1(hy+RY*1.55)} ${f1(hx-R*1.25)},${f1(hy+RY*.9)} ${f1(hx-R*1.15)},${f1(hy-RY*.1)} Z" fill="${C.hair}" stroke="${C.hairL}" stroke-width="${LW}" stroke-linejoin="round"/>`:'';
-  const hairTop=fem
-    ?`<path d="M${f1(hx-R*1.06)},${f1(hy+RY*.2)} C${f1(hx-R*1.16)},${f1(hy-RY*1.25)} ${f1(hx+R*1.16)},${f1(hy-RY*1.25)} ${f1(hx+R*1.06)},${f1(hy+RY*.2)} C${f1(hx+R*.95)},${f1(hy-RY*.35)} ${f1(hx+R*.55)},${f1(hy-RY*.6)} ${f1(hx-R*.05)},${f1(hy-RY*.62)} C${f1(hx-R*.15)},${f1(hy-RY*.3)} ${f1(hx-R*.6)},${f1(hy-RY*.12)} ${f1(hx-R*1.06)},${f1(hy+RY*.2)} Z" fill="${C.hair}" stroke="${C.hairL}" stroke-width="${LW}" stroke-linejoin="round"/>
+  const hairBack=longish?`<path d="M${f1(hx-R*1.15)},${f1(hy-RY*.1)} C${f1(hx-R*1.28)},${f1(hy-RY*1.4)} ${f1(hx+R*1.28)},${f1(hy-RY*1.4)} ${f1(hx+R*1.15)},${f1(hy-RY*.1)} C${f1(hx+R*1.25)},${f1(hy+RY*.9*HL)} ${f1(hx+R*1.35)},${f1(hy+RY*1.55*HL)} ${f1(hx+R*1.05)},${f1(hy+RY*(.2+1.55*HL))} Q${f1(hx)},${f1(hy+RY*(.1+1.5*HL))} ${f1(hx-R*1.05)},${f1(hy+RY*(.2+1.55*HL))} C${f1(hx-R*1.35)},${f1(hy+RY*1.55*HL)} ${f1(hx-R*1.25)},${f1(hy+RY*.9*HL)} ${f1(hx-R*1.15)},${f1(hy-RY*.1)} Z" fill="${C.hair}" stroke="${C.hairL}" stroke-width="${LW}" stroke-linejoin="round"/>`:'';
+  const buzzTop=`<path d="M${f1(hx-R*1.0)},${f1(hy-RY*.15)} C${f1(hx-R*1.05)},${f1(hy-RY*1.14)} ${f1(hx+R*1.05)},${f1(hy-RY*1.14)} ${f1(hx+R*1.0)},${f1(hy-RY*.15)} C${f1(hx+R*.92)},${f1(hy-RY*.52)} ${f1(hx+R*.45)},${f1(hy-RY*.7)} ${f1(hx)},${f1(hy-RY*.7)} C${f1(hx-R*.45)},${f1(hy-RY*.7)} ${f1(hx-R*.92)},${f1(hy-RY*.52)} ${f1(hx-R*1.0)},${f1(hy-RY*.15)} Z" fill="${C.hair}" opacity=".78"/>`;
+  const shine=`<ellipse cx="${f1(hx-R*.3)}" cy="${f1(hy-RY*.78)}" rx="${f1(R*.28)}" ry="${f1(RY*.1)}" fill="#FFFFFF" opacity=".28"/>`;
+  const hairTop=longish?`<path d="M${f1(hx-R*1.06)},${f1(hy+RY*.2)} C${f1(hx-R*1.16)},${f1(hy-RY*1.25)} ${f1(hx+R*1.16)},${f1(hy-RY*1.25)} ${f1(hx+R*1.06)},${f1(hy+RY*.2)} C${f1(hx+R*.95)},${f1(hy-RY*.35)} ${f1(hx+R*.55)},${f1(hy-RY*.6)} ${f1(hx-R*.05)},${f1(hy-RY*.62)} C${f1(hx-R*.15)},${f1(hy-RY*.3)} ${f1(hx-R*.6)},${f1(hy-RY*.12)} ${f1(hx-R*1.06)},${f1(hy+RY*.2)} Z" fill="${C.hair}" stroke="${C.hairL}" stroke-width="${LW}" stroke-linejoin="round"/>
       <path d="M${f1(hx+R*.1)},${f1(hy-RY*.9)} Q${f1(hx+R*.6)},${f1(hy-RY*.82)} ${f1(hx+R*.8)},${f1(hy-RY*.45)}" fill="none" stroke="${C.hairH}" stroke-width="3" stroke-linecap="round"/>`
-    :`<path d="M${f1(hx-R*1.02)},${f1(hy-RY*.05)} C${f1(hx-R*1.12)},${f1(hy-RY*.9)} ${f1(hx-R*.6)},${f1(hy-RY*1.28)} ${f1(hx+R*.05)},${f1(hy-RY*1.22)} C${f1(hx+R*.65)},${f1(hy-RY*1.3)} ${f1(hx+R*1.12)},${f1(hy-RY*.95)} ${f1(hx+R*1.02)},${f1(hy-RY*.05)} C${f1(hx+R*.98)},${f1(hy-RY*.42)} ${f1(hx+R*.82)},${f1(hy-RY*.6)} ${f1(hx+R*.55)},${f1(hy-RY*.66)} C${f1(hx+R*.15)},${f1(hy-RY*.7)} ${f1(hx-R*.35)},${f1(hy-RY*.55)} ${f1(hx-R*.62)},${f1(hy-RY*.68)} C${f1(hx-R*.82)},${f1(hy-RY*.55)} ${f1(hx-R*.96)},${f1(hy-RY*.35)} ${f1(hx-R*1.02)},${f1(hy-RY*.05)} Z" fill="${C.hair}" stroke="${C.hairL}" stroke-width="${LW}" stroke-linejoin="round"/>
-      <path d="M${f1(hx-R*.45)},${f1(hy-RY*1.02)} Q${f1(hx+R*.1)},${f1(hy-RY*1.12)} ${f1(hx+R*.55)},${f1(hy-RY*.92)}" fill="none" stroke="${C.hairH}" stroke-width="3" stroke-linecap="round"/>`;
-
+    :HS==='short'?`<path d="M${f1(hx-R*1.02)},${f1(hy-RY*.05)} C${f1(hx-R*1.12)},${f1(hy-RY*.9)} ${f1(hx-R*.6)},${f1(hy-RY*1.28)} ${f1(hx+R*.05)},${f1(hy-RY*1.22)} C${f1(hx+R*.65)},${f1(hy-RY*1.3)} ${f1(hx+R*1.12)},${f1(hy-RY*.95)} ${f1(hx+R*1.02)},${f1(hy-RY*.05)} C${f1(hx+R*.98)},${f1(hy-RY*.42)} ${f1(hx+R*.82)},${f1(hy-RY*.6)} ${f1(hx+R*.55)},${f1(hy-RY*.66)} C${f1(hx+R*.15)},${f1(hy-RY*.7)} ${f1(hx-R*.35)},${f1(hy-RY*.55)} ${f1(hx-R*.62)},${f1(hy-RY*.68)} C${f1(hx-R*.82)},${f1(hy-RY*.55)} ${f1(hx-R*.96)},${f1(hy-RY*.35)} ${f1(hx-R*1.02)},${f1(hy-RY*.05)} Z" fill="${C.hair}" stroke="${C.hairL}" stroke-width="${LW}" stroke-linejoin="round"/>
+      <path d="M${f1(hx-R*.45)},${f1(hy-RY*1.02)} Q${f1(hx+R*.1)},${f1(hy-RY*1.12)} ${f1(hx+R*.55)},${f1(hy-RY*.92)}" fill="none" stroke="${C.hairH}" stroke-width="3" stroke-linecap="round"/>`
+    :HS==='buzz'?buzzTop:shine;
   /* ============ SIDE (facing left) ============ */
   const ubD=(g.chD+g.waD)/2;
   const TK=(back,D,y)=>({x:xs+back-D/2,y,r:D/2});
@@ -691,12 +715,27 @@ function cartoon(showOrg,look){
   const SSP=[[-.5,-.42],[-.35,.3],[-.6,.55],[-.22,.52],[-.68,-.3],[-.45,.78],[-.15,.2],[-.55,.15],[-.3,-.5],[-.62,.72],[-.2,.7],[-.4,.62]];
   const sAcne=SSP.slice(0,L.food*3).map(([dx,dy],i)=>spot(shx+dx*srx,shy+dy*sry,h.rx*(.034+(i%3)*.01))).join('');
   const sSmoke=L.smoke>=2?`<path d="M${f1(shx-srx*.8)},${f1(shy+sry*.56)} l${f1(srx*.05)},${f1(sry*.03)} M${f1(shx-srx*.6)},${f1(shy+sry*.7)} l${f1(srx*.05)},${f1(sry*.06)}" stroke="${C.skinS}" stroke-width="1.1" stroke-linecap="round"/>`:'';
-  const sHairBack=fem?`<path d="M${f1(shx-srx*.6)},${f1(shy-sry*.8)} C${f1(shx+srx*.4)},${f1(shy-sry*1.4)} ${f1(shx+srx*1.4)},${f1(shy-sry*.7)} ${f1(shx+srx*1.25)},${f1(shy+sry*.4)} C${f1(shx+srx*1.2)},${f1(shy+sry*1.1)} ${f1(shx+srx*1.15)},${f1(shy+sry*1.6)} ${f1(shx+srx*.95)},${f1(shy+sry*1.8)} L${f1(shx+srx*.35)},${f1(shy+sry*1.7)} C${f1(shx+srx*.45)},${f1(shy+sry*1.1)} ${f1(shx+srx*.3)},${f1(shy+sry*.6)} ${f1(shx+srx*.2)},${f1(shy+sry*.3)} Z" fill="${C.hair}" stroke="${C.hairL}" stroke-width="${LW}" stroke-linejoin="round"/>`:'';
-  const sHair=fem
-    ?`<path d="M${f1(shx-srx*.85)},${f1(shy-sry*.35)} C${f1(shx-srx*.85)},${f1(shy-sry*1.2)} ${f1(shx+srx*1.1)},${f1(shy-sry*1.25)} ${f1(shx+srx*1.12)},${f1(shy-sry*.05)} C${f1(shx+srx*1.0)},${f1(shy+sry*.35)} ${f1(shx+srx*.55)},${f1(shy+sry*.4)} ${f1(shx+srx*.42)},${f1(shy+sry*.1)} C${f1(shx+srx*.35)},${f1(shy-sry*.35)} ${f1(shx-srx*.2)},${f1(shy-sry*.62)} ${f1(shx-srx*.85)},${f1(shy-sry*.35)} Z" fill="${C.hair}" stroke="${C.hairL}" stroke-width="${LW}" stroke-linejoin="round"/>
+  const sHairBack=longish?`<path d="M${f1(shx-srx*.6)},${f1(shy-sry*.8)} C${f1(shx+srx*.4)},${f1(shy-sry*1.4)} ${f1(shx+srx*1.4)},${f1(shy-sry*.7)} ${f1(shx+srx*1.25)},${f1(shy+sry*.4)} C${f1(shx+srx*1.2)},${f1(shy+sry*1.1*HL)} ${f1(shx+srx*1.15)},${f1(shy+sry*1.6*HL)} ${f1(shx+srx*.95)},${f1(shy+sry*(.2+1.6*HL))} L${f1(shx+srx*.35)},${f1(shy+sry*(.1+1.6*HL))} C${f1(shx+srx*.45)},${f1(shy+sry*1.1*HL)} ${f1(shx+srx*.3)},${f1(shy+sry*.6)} ${f1(shx+srx*.2)},${f1(shy+sry*.3)} Z" fill="${C.hair}" stroke="${C.hairL}" stroke-width="${LW}" stroke-linejoin="round"/>`:'';
+  const sBuzz=`<path d="M${f1(shx-srx*.8)},${f1(shy-sry*.45)} C${f1(shx-srx*.82)},${f1(shy-sry*1.14)} ${f1(shx+srx*1.0)},${f1(shy-sry*1.14)} ${f1(shx+srx*1.04)},${f1(shy-sry*.1)} C${f1(shx+srx*.96)},${f1(shy+sry*.15)} ${f1(shx+srx*.6)},${f1(shy+sry*.2)} ${f1(shx+srx*.42)},${f1(shy+sry*.05)} C${f1(shx+srx*.3)},${f1(shy-sry*.35)} ${f1(shx-srx*.2)},${f1(shy-sry*.55)} ${f1(shx-srx*.8)},${f1(shy-sry*.45)} Z" fill="${C.hair}" opacity=".78"/>`;
+  const sShine=`<ellipse cx="${f1(shx+srx*.1)}" cy="${f1(shy-sry*.8)}" rx="${f1(srx*.3)}" ry="${f1(sry*.1)}" fill="#FFFFFF" opacity=".28"/>`;
+  const sHair=longish?`<path d="M${f1(shx-srx*.85)},${f1(shy-sry*.35)} C${f1(shx-srx*.85)},${f1(shy-sry*1.2)} ${f1(shx+srx*1.1)},${f1(shy-sry*1.25)} ${f1(shx+srx*1.12)},${f1(shy-sry*.05)} C${f1(shx+srx*1.0)},${f1(shy+sry*.35)} ${f1(shx+srx*.55)},${f1(shy+sry*.4)} ${f1(shx+srx*.42)},${f1(shy+sry*.1)} C${f1(shx+srx*.35)},${f1(shy-sry*.35)} ${f1(shx-srx*.2)},${f1(shy-sry*.62)} ${f1(shx-srx*.85)},${f1(shy-sry*.35)} Z" fill="${C.hair}" stroke="${C.hairL}" stroke-width="${LW}" stroke-linejoin="round"/>
       <path d="M${f1(shx-srx*.2)},${f1(shy-sry*.92)} Q${f1(shx+srx*.5)},${f1(shy-sry*.95)} ${f1(shx+srx*.85)},${f1(shy-sry*.45)}" fill="none" stroke="${C.hairH}" stroke-width="3" stroke-linecap="round"/>`
-    :`<path d="M${f1(shx-srx*.82)},${f1(shy-sry*.5)} C${f1(shx-srx*.82)},${f1(shy-sry*1.25)} ${f1(shx+srx*.95)},${f1(shy-sry*1.28)} ${f1(shx+srx*1.06)},${f1(shy-sry*.12)} C${f1(shx+srx*1.02)},${f1(shy+sry*.25)} ${f1(shx+srx*.75)},${f1(shy+sry*.32)} ${f1(shx+srx*.45)},${f1(shy+sry*.12)} C${f1(shx+srx*.38)},${f1(shy-sry*.32)} ${f1(shx-srx*.1)},${f1(shy-sry*.58)} ${f1(shx-srx*.82)},${f1(shy-sry*.5)} Z" fill="${C.hair}" stroke="${C.hairL}" stroke-width="${LW}" stroke-linejoin="round"/>
-      <path d="M${f1(shx-srx*.35)},${f1(shy-sry*1.0)} Q${f1(shx+srx*.3)},${f1(shy-sry*1.12)} ${f1(shx+srx*.8)},${f1(shy-sry*.75)}" fill="none" stroke="${C.hairH}" stroke-width="3" stroke-linecap="round"/>`;
+    :HS==='short'?`<path d="M${f1(shx-srx*.82)},${f1(shy-sry*.5)} C${f1(shx-srx*.82)},${f1(shy-sry*1.25)} ${f1(shx+srx*.95)},${f1(shy-sry*1.28)} ${f1(shx+srx*1.06)},${f1(shy-sry*.12)} C${f1(shx+srx*1.02)},${f1(shy+sry*.25)} ${f1(shx+srx*.75)},${f1(shy+sry*.32)} ${f1(shx+srx*.45)},${f1(shy+sry*.12)} C${f1(shx+srx*.38)},${f1(shy-sry*.32)} ${f1(shx-srx*.1)},${f1(shy-sry*.58)} ${f1(shx-srx*.82)},${f1(shy-sry*.5)} Z" fill="${C.hair}" stroke="${C.hairL}" stroke-width="${LW}" stroke-linejoin="round"/>
+      <path d="M${f1(shx-srx*.35)},${f1(shy-sry*1.0)} Q${f1(shx+srx*.3)},${f1(shy-sry*1.12)} ${f1(shx+srx*.8)},${f1(shy-sry*.75)}" fill="none" stroke="${C.hairH}" stroke-width="3" stroke-linecap="round"/>`
+    :HS==='buzz'?sBuzz:sShine;
+  /* beard, moustache, glasses */
+  const bOp=LK.beard==='stubble'?.3:LK.beard==='none'?0:.94,bExt=LK.beard==='full'?ry*.2:LK.beard==='short'?ry*.05:0;
+  const bTop=hy+ry*.26;
+  const beardF=bOp?`<path d="M${f1(hx-rx*F.fw*.99)},${f1(bTop)} C${f1(hx-rx*F.fw)},${f1(hy+ry*.5)} ${f1(hx-rx*F.jw-bExt*.2)},${f1(hy+ry*.9+bExt*.5)} ${f1(hx-rx*F.cw)},${f1(hy+ry*.99+bExt)} Q${f1(hx)},${f1(hy+ry*1.04+bExt*1.3)} ${f1(hx+rx*F.cw)},${f1(hy+ry*.99+bExt)} C${f1(hx+rx*F.jw+bExt*.2)},${f1(hy+ry*.9+bExt*.5)} ${f1(hx+rx*F.fw)},${f1(hy+ry*.5)} ${f1(hx+rx*F.fw*.99)},${f1(bTop)} C${f1(hx+rx*.78)},${f1(hy+ry*.4)} ${f1(hx+rx*.42)},${f1(hy+ry*.48)} ${f1(hx+rx*.3)},${f1(hy+ry*.7)} Q${f1(hx)},${f1(hy+ry*.84)} ${f1(hx-rx*.3)},${f1(hy+ry*.7)} C${f1(hx-rx*.42)},${f1(hy+ry*.48)} ${f1(hx-rx*.78)},${f1(hy+ry*.4)} ${f1(hx-rx*F.fw*.99)},${f1(bTop)} Z" fill="${C.hair}" opacity="${bOp}" ${LK.beard==='stubble'?'':`stroke="${C.hairL}" stroke-width="1.2"`}/>
+    <path d="M${f1(hx-rx*.27)},${f1(hy+ry*.61)} Q${f1(hx)},${f1(hy+ry*.49)} ${f1(hx+rx*.27)},${f1(hy+ry*.61)} Q${f1(hx)},${f1(hy+ry*.56)} ${f1(hx-rx*.27)},${f1(hy+ry*.61)} Z" fill="${C.hair}" opacity="${bOp}"/>`:'';
+  const beardS=bOp?`<path d="M${f1(shx+srx*.38)},${f1(shy+sry*.18)} C${f1(shx+srx*.42)},${f1(shy+sry*.45)} ${f1(jawX+srx*.05)},${f1(jawY-sry*.1)} ${f1(jawX)},${f1(jawY+bExt*.4)} Q${f1(chinX+srx*.15)},${f1(shy+sry*1.06+bExt*1.2)} ${f1(chinX-bExt*.15)},${f1(shy+sry*.9+bExt*.6)} L${f1(shx-srx*.74)},${f1(shy+sry*.72)} Q${f1(shx-srx*.42)},${f1(shy+sry*.56)} ${f1(shx+srx*.02)},${f1(shy+sry*.4)} Z" fill="${C.hair}" opacity="${bOp}" ${LK.beard==='stubble'?'':`stroke="${C.hairL}" stroke-width="1.2"`}/>
+    <path d="M${f1(shx-srx*.84)},${f1(shy+sry*.58)} Q${f1(shx-srx*.7)},${f1(shy+sry*.5)} ${f1(shx-srx*.55)},${f1(shy+sry*.6)} Q${f1(shx-srx*.7)},${f1(shy+sry*.57)} ${f1(shx-srx*.84)},${f1(shy+sry*.58)} Z" fill="${C.hair}" opacity="${bOp}"/>`:'';
+  const GC='#1E2228';
+  const lens=(x,y,sc=1)=>LK.glasses==='round'?`<ellipse cx="${f1(x)}" cy="${f1(y)}" rx="${f1(eRx*2.5*sc)}" ry="${f1(eRy*2.1)}" fill="#FFFFFF" fill-opacity=".14" stroke="${GC}" stroke-width="1.8"/>`
+    :`<rect x="${f1(x-eRx*2.7*sc)}" y="${f1(y-eRy*1.75)}" width="${f1(eRx*5.4*sc)}" height="${f1(eRy*3.3)}" rx="${f1(eRx*.8)}" fill="#FFFFFF" fill-opacity=".14" stroke="${GC}" stroke-width="1.8"/>`;
+  const gW=LK.glasses==='round'?eRx*2.5:eRx*2.7;
+  const glassesF=LK.glasses==='none'?'':`${lens(hx-eyeX,eyeY)}${lens(hx+eyeX,eyeY)}<path d="M${f1(hx-eyeX+gW)},${f1(eyeY-eRy*.4)} Q${f1(hx)},${f1(eyeY-eRy*1.4)} ${f1(hx+eyeX-gW)},${f1(eyeY-eRy*.4)} M${f1(hx-eyeX-gW)},${f1(eyeY-eRy*.6)} L${f1(hx-rx*F.fw*.98)},${f1(eyeY-eRy*.8)} M${f1(hx+eyeX+gW)},${f1(eyeY-eRy*.6)} L${f1(hx+rx*F.fw*.98)},${f1(eyeY-eRy*.8)}" fill="none" stroke="${GC}" stroke-width="1.8" stroke-linecap="round"/>`;
+  const glassesS=LK.glasses==='none'?'':`${lens(sEyeX-eRx*.3,eyeY,.45)}<path d="M${f1(sEyeX-eRx*.3+gW*.45)},${f1(eyeY-eRy*.6)} L${f1(shx+srx*.22)},${f1(eyeY-eRy*.2)}" fill="none" stroke="${GC}" stroke-width="1.8" stroke-linecap="round"/>`;
   /* side eye uses the front eye helpers with a narrower scale */
   const sEye=`${circles(sEyeX,.7)}${eye(sEyeX,.75)}${lid(sEyeX,.75)}`;
 
@@ -717,7 +756,7 @@ function cartoon(showOrg,look){
     ${armsF}
     ${ear(-1)}${ear(1)}
     <path d="${faceD}" fill="url(#cFace)" stroke="${C.skinL}" stroke-width="${LW}" stroke-linejoin="round"/>
-    ${redNose}${acne}${circles(hx-eyeX)}${circles(hx+eyeX)}${hairTop}${frown}${brow(hx-eyeX)}${brow(hx+eyeX)}${eye(hx-eyeX)}${eye(hx+eyeX)}${lid(hx-eyeX)}${lid(hx+eyeX)}${nose}${blush}${smokeLines}${mouth}
+    ${redNose}${acne}${circles(hx-eyeX)}${circles(hx+eyeX)}${hairTop}${frown}${brow(hx-eyeX)}${brow(hx+eyeX)}${eye(hx-eyeX)}${eye(hx+eyeX)}${lid(hx-eyeX)}${lid(hx+eyeX)}${nose}${blush}${smokeLines}${beardF}${mouth}${glassesF}
     ${showOrg?`<g filter="url(#cOrg)">${appOrgans(g,cx)}</g>`:''}
     </g>
     <g>
@@ -732,7 +771,7 @@ function cartoon(showOrg,look){
     ${sCollar}
     ${armWithSleeve(sArm,sShY,al,1)}
     <path d="${profile}" fill="url(#cFace)" stroke="${C.skinL}" stroke-width="${LW}" stroke-linejoin="round"/>
-    ${sEar}${sRed}${sAcne}${sHair}${sBrow}${sEye}${sNostril}${sBlush}${sSmoke}${sMouth}
+    ${sEar}${sRed}${sAcne}${sHair}${sBrow}${sEye}${sNostril}${sBlush}${sSmoke}${beardS}${sMouth}${glassesS}
     </g>
     <text x="${cx}" y="438" text-anchor="middle" font-family="Manrope,system-ui,sans-serif" font-size="9" font-weight="600" fill="#9A7B3E" letter-spacing="1">СПЕРЕДИ</text>
     <text x="${xs-12}" y="438" text-anchor="middle" font-family="Manrope,system-ui,sans-serif" font-size="9" font-weight="600" fill="#9A7B3E" letter-spacing="1">СБОКУ</text>
@@ -870,7 +909,7 @@ $('#saveDay').addEventListener('click',()=>{const d={...today,alc:today.beer*BEE
 $('#orgToggle').addEventListener('click',()=>{state.showOrg=!state.showOrg;save();renderAll()});
 $('#healthy').addEventListener('click',()=>logDays(healthyDay(state.p),1,`День ${state.day+1}: здоровый день`));
 
-const FIELDS=['sex','face','h','w','shoulder','chest','waist','hips','arm','leg','sport','sportYears','steps','sit','bed','wake','meal','screen','stress','beer','alcYears','cig','cigYears','vape','vapeYears','coffee','energy','fastfood'];
+const FIELDS=['sex','h','w','shoulder','chest','waist','hips','arm','leg','sport','sportYears','steps','sit','bed','wake','meal','screen','stress','beer','alcYears','cig','cigYears','vape','vapeYears','coffee','energy','fastfood'];
 function fillForm(){FIELDS.forEach(k=>{const el=$('#f-'+k);if(el)el.value=state.p[k]});fillHForm()}
 const HFIELDS=['sport','steps','sit','sleep','screen','stress','late','coffee','beer','cig','vape','energy','ff'];
 function fillHForm(){const h=state.p.healthy;HFIELDS.forEach(k=>{const el=$('#h-'+k);if(el)el.value=h[k]})}
@@ -883,19 +922,137 @@ $('#hform').addEventListener('submit',e=>{
 });
 $('#form').addEventListener('submit',e=>{
   e.preventDefault();
-  const p={};FIELDS.forEach(k=>{const v=$('#f-'+k).value;p[k]=['sex','face','bed','wake','meal'].includes(k)?v:Number(v)||0});
+  const p={};FIELDS.forEach(k=>{const v=$('#f-'+k).value;p[k]=['sex','bed','wake','meal'].includes(k)?v:Number(v)||0});
   p.h=clamp(p.h||175,130,220);p.w=clamp(p.w||75,35,250);
   const dflt={shoulder:p.sex==='f'?39:46,chest:p.sex==='f'?92:100,waist:p.sex==='f'?74:88,hips:p.sex==='f'?100:100,arm:Math.round(p.h*.33),leg:Math.round(p.h*.455)};
   Object.keys(dflt).forEach(k=>{if(!p[k])p[k]=dflt[k]});
   if(!p.bed)p.bed='23:00';if(!p.wake)p.wake='07:00';if(!p.meal)p.meal='19:00';
-  p.healthy=state.p.healthy;
+  p.healthy=state.p.healthy;p.face=state.p.face;p.look=state.p.look;
   const so=state.showOrg;
   state=create(p);state.showOrg=so;today=typicalToday(p);save();renderAll();renderToday();
   toast('Двойник пересоздан по анкете');
   window.scrollTo({top:0,behavior:'smooth'});
 });
 
-fillForm();renderAll();renderToday();
+/* ---------- "похож на меня": photo → look ---------- */
+function lookParams(p){const fem=p.sex==='f';return{skin:'#F1C29F',hair:fem?'#6A3A1F':'#3A2416',eye:'#5B3A22',style:fem?'long':'short',beard:'none',glasses:'none',...(p.look||{})}}
+const toHex=c=>'#'+c.map(v=>Math.round(clamp(v,0,255)).toString(16).padStart(2,'0')).join('');
+const lum=c=>.2126*c[0]+.7152*c[1]+.0722*c[2];
+const cdist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+function sampleDisc(ctx,x,y,r,keep=[.2,.8]){
+  const W=ctx.canvas.width,H=ctx.canvas.height,x0=Math.max(0,Math.round(x-r)),y0=Math.max(0,Math.round(y-r)),w=Math.min(W-x0,Math.round(2*r)+1),h=Math.min(H-y0,Math.round(2*r)+1);
+  if(w<1||h<1)return null;
+  const d=ctx.getImageData(x0,y0,w,h).data,px=[];
+  for(let j=0;j<h;j++)for(let i=0;i<w;i++){const dx=x0+i-x,dy=y0+j-y;if(dx*dx+dy*dy<=r*r){const k=(j*w+i)*4;px.push([d[k],d[k+1],d[k+2]])}}
+  if(!px.length)return null;
+  px.sort((a,b)=>lum(a)-lum(b));
+  const s=px.slice(Math.floor(px.length*keep[0]),Math.max(Math.floor(px.length*keep[0])+1,Math.floor(px.length*keep[1])));
+  return [0,1,2].map(c=>s.reduce((t,p)=>t+p[c],0)/s.length);
+}
+const avgC=cs=>{cs=cs.filter(Boolean);return cs.length?[0,1,2].map(c=>cs.reduce((t,p)=>t+p[c],0)/cs.length):null};
+
+let landmarker=null,lmTried=false;
+const MP='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+async function getLandmarker(){
+  if(landmarker||lmTried)return landmarker;
+  lmTried=true;
+  const timeout=ms=>new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms));
+  try{
+    const mod=await Promise.race([import(MP+'/vision_bundle.mjs'),timeout(15000)]);
+    const files=await Promise.race([mod.FilesetResolver.forVisionTasks(MP+'/wasm'),timeout(15000)]);
+    landmarker=await Promise.race([mod.FaceLandmarker.createFromOptions(files,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'},runningMode:'IMAGE',numFaces:1}),timeout(20000)]);
+  }catch(e){landmarker=null}
+  return landmarker;
+}
+
+function analyze(lm,ctx){
+  const W=ctx.canvas.width,H=ctx.canvas.height,P=i=>({x:lm[i].x*W,y:lm[i].y*H}),d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  const top=P(10),chin=P(152),cl=P(234),crr=P(454),jl=P(172),jr=P(397),fl=P(54),frr=P(284);
+  const faceH=d(top,chin),cheekW=d(cl,crr),jawW=d(jl,jr),foreW=d(fl,frr);
+  const ratio=faceH/cheekW,jr_=jawW/cheekW,fr_=foreW/jawW;
+  let face='oval';
+  if(ratio>1.5)face='long';
+  else if(fr_>1.22&&jr_<.82)face='heart';
+  else if(jr_>.9&&ratio<1.38)face='square';
+  else if(ratio<1.27)face='round';
+  const r=cheekW*.045;
+  const skin=avgC([sampleDisc(ctx,P(50).x,P(50).y,r),sampleDisc(ctx,P(280).x,P(280).y,r),sampleDisc(ctx,P(151).x,P(151).y,r*.8)]);
+  const up={x:top.x+(top.x-chin.x)*.16,y:top.y+(top.y-chin.y)*.16};
+  const hairC=avgC([sampleDisc(ctx,up.x,up.y,r*1.2,[.1,.6]),sampleDisc(ctx,up.x-cheekW*.22,up.y+faceH*.04,r,[.1,.6]),sampleDisc(ctx,up.x+cheekW*.22,up.y+faceH*.04,r,[.1,.6])]);
+  let eye=null;
+  if(lm.length>=478){const c1=P(468),c2=P(473),ir=Math.max(1.5,d(P(468),P(469))*.55);eye=avgC([sampleDisc(ctx,c1.x+ir*.6,c1.y,ir*.4,[.3,.9]),sampleDisc(ctx,c1.x-ir*.6,c1.y,ir*.4,[.3,.9]),sampleDisc(ctx,c2.x+ir*.6,c2.y,ir*.4,[.3,.9]),sampleDisc(ctx,c2.x-ir*.6,c2.y,ir*.4,[.3,.9])])}
+  const out={face,skin:skin&&toHex(skin.map((v,i)=>v+(255-v)*.06)),hair:null,eye:eye&&toHex(eye),notes:[]};
+  let style=null,beard=null;
+  if(skin&&hairC){
+    if(cdist(hairC,skin)<38){style='bald';out.notes.push('волос на макушке не видно')}
+    else{
+      out.hair=toHex(hairC);
+      const side={x:jl.x-(crr.x-cl.x)*.12,y:jl.y+faceH*.05},sideC=sampleDisc(ctx,side.x,side.y,r,[.1,.6]);
+      const low={x:cl.x-(crr.x-cl.x)*.12,y:chin.y+faceH*.35},lowC=sampleDisc(ctx,low.x,low.y,r,[.1,.6]);
+      const isHair=c=>c&&cdist(c,hairC)<45&&cdist(c,skin)>45;
+      style=isHair(lowC)?'long':isHair(sideC)?'bob':null;
+    }
+    if(state.p.sex!=='f'){
+      const lip=P(17),chinPt={x:(lip.x+chin.x)/2,y:(lip.y+chin.y)/2+faceH*.03};
+      const m1=P(61),m2=P(291),lowL={x:(m1.x+jl.x)/2,y:(m1.y+jl.y)/2},lowR={x:(m2.x+jr.x)/2,y:(m2.y+jr.y)/2};
+      const area=avgC([sampleDisc(ctx,chinPt.x,chinPt.y,r),sampleDisc(ctx,lowL.x,lowL.y,r),sampleDisc(ctx,lowR.x,lowR.y,r)]);
+      if(area){const q=lum(area)/Math.max(1,lum(skin));beard=q<.62?'full':q<.75?'short':q<.86?'stubble':'none'}
+    }
+  }
+  out.style=style;out.beard=beard;
+  out.marks=[P(50),P(280),up,chin];
+  return out;
+}
+
+let photoMode='idle',photoCtx=null;
+function drawPhoto(img){
+  const cv=$('#pcv'),k=Math.min(1,640/Math.max(img.naturalWidth,img.naturalHeight));
+  cv.width=Math.round(img.naturalWidth*k);cv.height=Math.round(img.naturalHeight*k);
+  const ctx=cv.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,cv.width,cv.height);
+  photoCtx=ctx;$('#photoBox').hidden=false;return ctx;
+}
+function mark(pts,col){const ctx=photoCtx;ctx.save();ctx.lineWidth=2;ctx.strokeStyle=col;pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,6,0,Math.PI*2);ctx.stroke()});ctx.restore()}
+function setLook(patch){state.p.look={...lookParams(state.p),...patch};save();renderAll();fillLookForm()}
+function pstatus(t){$('#pstatus').textContent=t}
+$('#photo').addEventListener('change',async e=>{
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  const url=URL.createObjectURL(f),img=new Image();
+  img.onload=async()=>{
+    const ctx=drawPhoto(img);URL.revokeObjectURL(url);
+    pstatus('Ищу лицо на фото…');
+    const lmk=await getLandmarker();
+    if(lmk){
+      let res=null;try{res=lmk.detect(ctx.canvas)}catch(err){}
+      if(res&&res.faceLandmarks&&res.faceLandmarks.length){
+        const a=analyze(res.faceLandmarks[0],ctx);mark(a.marks,'#46D9F5');
+        const patch={};if(a.skin)patch.skin=a.skin;if(a.hair)patch.hair=a.hair;if(a.eye)patch.eye=a.eye;if(a.style)patch.style=a.style;if(a.beard)patch.beard=a.beard;
+        state.p.face=a.face;setLook(patch);
+        const FN={oval:'овальное',round:'круглое',square:'квадратное',long:'вытянутое',heart:'сердечком'};
+        pstatus(`Готово: лицо ${FN[a.face]}${a.beard&&a.beard!=='none'?', борода':''}${a.style==='bald'?', без волос':a.style==='long'?', длинные волосы':''}. Если что-то не так, поправь ниже.`);
+        e.target.value='';return;
+      }
+      pstatus('Не нашёл лицо. Нажми на фото: сначала на щёку, потом на волосы.');
+    }else pstatus('Автоопределение здесь недоступно. Нажми на фото: сначала на щёку, потом на волосы.');
+    photoMode='skin';e.target.value='';
+  };
+  img.src=url;
+});
+$('#pcv').addEventListener('click',e=>{
+  if(photoMode==='idle'||!photoCtx)return;
+  const cv=e.currentTarget,rc=cv.getBoundingClientRect(),x=(e.clientX-rc.left)*cv.width/rc.width,y=(e.clientY-rc.top)*cv.height/rc.height,r=Math.max(4,cv.width*.012);
+  const c=sampleDisc(photoCtx,x,y,r,photoMode==='skin'?[.2,.8]:[.1,.6]);if(!c)return;
+  if(photoMode==='skin'){setLook({skin:toHex(c.map(v=>v+(255-v)*.06))});mark([{x,y}],'#F2B33D');photoMode='hair';pstatus('Кожа взята. Теперь нажми на волосы.')}
+  else{setLook({hair:toHex(c)});mark([{x,y}],'#F2B33D');photoMode='idle';pstatus('Готово. Форму лица, причёску и бороду выбери ниже.')}
+});
+const LOOKF=['skin','hair','eye','style','beard','glasses'];
+function fillLookForm(){const L=lookParams(state.p);LOOKF.forEach(k=>{const el=$('#lk-'+k);if(el)el.value=L[k]});$('#lk-face').value=state.p.face||'oval';
+  $('#lk-beard').closest('.fld').hidden=state.p.sex==='f'}
+$('#lookForm').addEventListener('input',e=>{const id=e.target.id||'';if(id==='lk-face'){state.p.face=e.target.value;save();renderAll();return}
+  const k=id.replace('lk-','');if(LOOKF.includes(k))setLook({[k]:e.target.value})});
+$('#lookForm').addEventListener('change',e=>{const id=e.target.id||'';if(id==='lk-face'){state.p.face=e.target.value;save();renderAll()}});
+$('#lookReset').addEventListener('click',()=>{state.p.look=undefined;save();renderAll();fillLookForm();pstatus('Вернул внешность по умолчанию.')});
+
+fillForm();fillLookForm();renderAll();renderToday();
 })();
 </script>
 <script>
