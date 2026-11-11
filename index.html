@@ -60,7 +60,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 
 /* stage */
 .stage{display:grid;gap:14px}
-.figure{background:radial-gradient(ellipse at 50% 28%,#FCEBCB 0%,#F2D3A0 62%,#E6BF83 100%);border-radius:var(--r);padding:8px 6px 0;overflow:hidden}
+.figure{background:radial-gradient(ellipse at 50% 30%,#FFFFFF 0%,#F2F4F6 62%,#E2E6EA 100%);border-radius:var(--r);padding:8px 6px 0;overflow:hidden}
 .figure svg{width:100%;max-width:560px;height:auto;display:block;margin:0 auto}
 .otoggle{font-size:.8rem;font-weight:600;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:var(--r-s);padding:6px 11px;cursor:pointer}
 .otoggle:hover{background:var(--surface-3)}
@@ -180,11 +180,23 @@ details.box[open]>summary::after{transform:rotate(225deg)}
 .pbox{margin-top:12px;display:grid;gap:6px}
 .pbox canvas{max-width:100%;max-height:320px;width:auto;height:auto;border-radius:10px;justify-self:center;cursor:crosshair}
 
+.onb{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 16px;border-radius:var(--r);padding:14px 16px;background:var(--accent);color:var(--accent-ink)}
+.onb.s2{background:var(--blue);color:#0A1626}
+.onb-t{display:grid;gap:2px;min-width:0;flex:1 1 260px}
+.onb-step{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;opacity:.7}
+.onb-t b{font-size:1.15rem;font-weight:700}
+.onb-t span:last-child{font-size:.87rem;opacity:.85}
+.onb-a{display:flex;gap:8px;flex-wrap:wrap}
+.onb-btn{background:#10161D;color:#fff;border:0;border-radius:var(--r-s);padding:11px 18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center}
+.onb-skip{background:transparent;border:1.5px solid currentColor;border-radius:var(--r-s);padding:10px 14px;font-weight:600;color:inherit;cursor:pointer}
+.likeacts{display:flex;justify-content:flex-end;margin-top:12px}
+#likeBody>.note{margin-top:0}
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:var(--r);
   padding:10px 16px;font-size:.86rem;font-weight:600;max-width:calc(100% - 32px);box-shadow:0 10px 30px rgba(0,0,0,.4);z-index:20}
 </style>
 
 <div class="app">
+  <div class="onb" id="onb" hidden></div>
   <header class="top">
     <div>
       <h1>Двойник</h1>
@@ -243,7 +255,8 @@ details.box[open]>summary::after{transform:rotate(225deg)}
       </section>
 
       <section class="card" id="likeMe">
-        <div class="card-head"><h2>Похож на меня</h2><button type="button" class="otoggle" id="lookReset">Сбросить</button></div>
+        <div class="card-head"><h2>Внешность</h2><button type="button" class="otoggle" id="likeToggle">Изменить</button></div>
+        <div id="likeBody" hidden>
         <p class="note" style="margin:0 0 10px">Загрузи фото лица анфас при дневном свете. Приложение само определит форму лица, цвет кожи, волос и глаз. Фото обрабатывается на телефоне, никуда не отправляется и не сохраняется.</p>
         <label class="upl" for="photo">Загрузить фото</label><input id="photo" type="file" accept="image/*" hidden>
         <div id="photoBox" class="pbox" hidden><canvas id="pcv" aria-label="Загруженное фото"></canvas><p id="pstatus" class="note" aria-live="polite"></p></div>
@@ -256,6 +269,8 @@ details.box[open]>summary::after{transform:rotate(225deg)}
           <label class="fld">Цвет волос<input id="lk-hair" type="color"></label>
           <label class="fld">Цвет глаз<input id="lk-eye" type="color"></label>
         </form>
+        <div class="likeacts"><button type="button" class="otoggle" id="lookReset">Сбросить внешность</button></div>
+        </div>
       </section>
 
       <section class="card">
@@ -295,9 +310,9 @@ details.box[open]>summary::after{transform:rotate(225deg)}
               <label class="fld">Кофе, чашек в день<input id="f-coffee" type="number" min="0" max="15"></label>
               <label class="fld">Энергетики, банок в неделю<input id="f-energy" type="number" min="0" max="40"></label>
               <label class="fld">Фастфуд и сладкое, раз в неделю<input id="f-fastfood" type="number" min="0" max="30"></label>
-              <button class="primary" type="submit" style="grid-column:1/-1;margin-top:6px">Пересоздать двойника</button>
+              <button class="primary" type="submit" style="grid-column:1/-1;margin-top:6px">Сохранить анкету</button>
             </form>
-            <p class="note">Обхваты меряй сантиметровой лентой: талию на уровне пупка, бёдра по самой широкой части. Дальше двойник сам пересчитывает их при изменении веса. Банка пива 0,5 л крепостью 5% — это около 20 г спирта. Вейп считается по затяжкам: он мягче сигарет для лёгких, но никотин так же нагружает сердце. Пересоздание сбрасывает дни и историю.</p>
+            <p class="note">Обхваты меряй сантиметровой лентой: талию на уровне пупка, бёдра по самой широкой части. Дальше двойник сам пересчитывает их при изменении веса. Банка пива 0,5 л крепостью 5% — это около 20 г спирта. Вейп считается по затяжкам: он мягче сигарет для лёгких, но никотин так же нагружает сердце. После сохранения анкеты дни и история начинаются заново.</p>
             <hr class="hsep">
             <h3>Здоровый день</h3>
             <p class="note" style="margin:0">Опиши, как для тебя выглядит здоровый день. Его записывает кнопка «Здоровый день», и по нему считается, сколько органам восстанавливаться.</p>
@@ -469,6 +484,7 @@ if(!state.p.healthy)state.p.healthy=defaultHealthy(state.p);
 if(!state.p.face)state.p.face='oval';
 if(state.p.fastfood===undefined)state.p.fastfood=1;
 if(!state.ema)state.ema=emaInit(state.p);
+if(state.photoStep===undefined)state.photoStep=state.p.look?'done':(state.isExample?null:null);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
 
 let today=typicalToday(state.p);
@@ -607,7 +623,7 @@ function cartoon(showOrg,look){
   const cel=(id,b,s,at=.68)=>`<linearGradient id="${id}" x1="0" x2="1"><stop offset="0" stop-color="${b}"/><stop offset="${at}" stop-color="${b}"/><stop offset="${at}" stop-color="${s}"/><stop offset="1" stop-color="${s}"/></linearGradient>`;
   const defs=`<defs>${cel('cSkin',C.skin,C.skinS)}${cel('cShirt',C.shirt,C.shirtS,.72)}${cel('cPants',C.pants,C.pantsS)}${cel('cShoe','#FAFAFA','#DDE1E6')}
     <radialGradient id="cFace" cx="40%" cy="38%" r="70%"><stop offset="0" stop-color="${C.skin}"/><stop offset=".78" stop-color="${C.skin}"/><stop offset="1" stop-color="${C.skinS}"/></radialGradient>
-    <radialGradient id="cShadow"><stop offset="0" stop-color="#6B4A10" stop-opacity=".28"/><stop offset="1" stop-color="#6B4A10" stop-opacity="0"/></radialGradient>
+    <radialGradient id="cShadow"><stop offset="0" stop-color="#1E2630" stop-opacity=".22"/><stop offset="1" stop-color="#1E2630" stop-opacity="0"/></radialGradient>
     <filter id="cOrg" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
   const path=(d,fill,line,extra='')=>`<path d="${d}" fill="${fill}" stroke="${line}" stroke-width="${LW}" stroke-linejoin="round" stroke-linecap="round" ${extra}/>`;
   const line=(a,b,col,wd=LW)=>`<path d="M${f1(a.x)},${f1(a.y)} L${f1(b.x)},${f1(b.y)}" stroke="${col}" stroke-width="${wd}" stroke-linecap="round"/>`;
@@ -807,8 +823,8 @@ function cartoon(showOrg,look){
     <path d="${profile}" fill="url(#cFace)" stroke="${C.skinL}" stroke-width="${LW}" stroke-linejoin="round"/>
     ${sEar}${sRed}${sAcne}${sHair}${sBrow}${sEye}${sNostril}${sBlush}${sSmoke}${beardS}${sMouth}${glassesS}
     </g>
-    <text x="${cx}" y="438" text-anchor="middle" font-family="Manrope,system-ui,sans-serif" font-size="9" font-weight="600" fill="#9A7B3E" letter-spacing="1">СПЕРЕДИ</text>
-    <text x="${xs-12}" y="438" text-anchor="middle" font-family="Manrope,system-ui,sans-serif" font-size="9" font-weight="600" fill="#9A7B3E" letter-spacing="1">СБОКУ</text>
+    <text x="${cx}" y="438" text-anchor="middle" font-family="Manrope,system-ui,sans-serif" font-size="9" font-weight="600" fill="#8A94A0" letter-spacing="1">СПЕРЕДИ</text>
+    <text x="${xs-12}" y="438" text-anchor="middle" font-family="Manrope,system-ui,sans-serif" font-size="9" font-weight="600" fill="#8A94A0" letter-spacing="1">СБОКУ</text>
   </svg>`;
 }
 
@@ -906,11 +922,19 @@ function renderToday(){
 }
 function renderIntro(){
   $('#intro').innerHTML=state.isExample
-    ?'Сейчас загружен <b>пример профиля</b>. Заполни анкету внизу и нажми «Пересоздать двойника», чтобы он стал тобой.'
+    ?'Отмечай привычки каждый день и смотри, как они меняют твоё тело, лицо и органы.'
     :'Отмечай привычки каждый день и смотри, как они меняют твоё тело, лицо и органы.';
 }
+function renderOnb(){
+  const el=$('#onb');
+  if(state.isExample){el.hidden=false;el.className='onb';
+    el.innerHTML=`<div class="onb-t"><span class="onb-step">Шаг 1 из 2</span><b>Заполните анкету здоровья</b><span>Рост, вес, замеры и привычки. Пока анкеты нет, двойник показывает чужой пример.</span></div><div class="onb-a"><button type="button" class="onb-btn" id="goAnketa">Анкета здоровья</button></div>`}
+  else if(!state.photoStep){el.hidden=false;el.className='onb s2';
+    el.innerHTML=`<div class="onb-t"><span class="onb-step">Шаг 2 из 2</span><b>Загрузите фото лица</b><span>Двойник возьмёт форму лица, цвет кожи, волос и глаз. Фото остаётся на телефоне.</span></div><div class="onb-a"><label class="onb-btn" for="photo">Загрузить фото</label><button type="button" class="onb-skip" id="skipPhoto">Пропустить</button></div>`}
+  else{el.hidden=true;el.innerHTML=''}
+}
 function renderAll(){
-  renderIntro();
+  renderIntro();renderOnb();
   $('#figure').innerHTML=avatar();
   renderMeas();renderLook();renderStats();renderOrgans();
   const ot=$('#orgToggle');ot.setAttribute('aria-pressed',!!state.showOrg);ot.textContent=state.showOrg?'Скрыть органы':'Показать органы';
@@ -981,8 +1005,8 @@ $('#form').addEventListener('submit',e=>{
   if(!p.bed)p.bed='23:00';if(!p.wake)p.wake='07:00';if(!p.meal)p.meal='19:00';
   p.healthy=state.p.healthy;p.face=state.p.face;p.look=state.p.look;
   const so=state.showOrg;
-  state=create(p);state.showOrg=so;state.isExample=false;today=typicalToday(p);save();renderAll();renderToday();
-  toast('Двойник пересоздан по анкете');
+  const ps=state.photoStep;state=create(p);state.showOrg=so;state.isExample=false;state.photoStep=ps||null;today=typicalToday(p);save();renderAll();renderToday();
+  toast('Анкета сохранена');$('#anketa').open=false;
   window.scrollTo({top:0,behavior:'smooth'});
 });
 
@@ -1066,8 +1090,21 @@ function drawPhoto(img){
 function mark(pts,col){const ctx=photoCtx;ctx.save();ctx.lineWidth=2;ctx.strokeStyle=col;pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,6,0,Math.PI*2);ctx.stroke()});ctx.restore()}
 function setLook(patch){state.p.look={...lookParams(state.p),...patch};save();renderAll();fillLookForm()}
 function pstatus(t){$('#pstatus').textContent=t}
+let likeOpen=false;
+function setLikeOpen(v){likeOpen=v;$('#likeBody').hidden=!v;$('#likeToggle').textContent=v?'Свернуть':'Изменить'}
+function photoDone(msg,collapse){
+  state.photoStep='done';save();renderOnb();
+  setTimeout(()=>{const cv=$('#pcv');try{cv.getContext('2d').clearRect(0,0,cv.width,cv.height)}catch(e){}$('#photoBox').hidden=true;photoCtx=null;if(collapse)setLikeOpen(false)},collapse?400:1800);
+  toast(msg);
+}
+$('#likeToggle').addEventListener('click',()=>setLikeOpen(!likeOpen));
+$('#onb').addEventListener('click',e=>{
+  if(e.target.closest('#goAnketa')){const a=$('#anketa');a.open=true;a.scrollIntoView({behavior:'smooth',block:'start'});return}
+  if(e.target.closest('#skipPhoto')){state.photoStep='skipped';save();renderOnb();toast('Фото можно добавить позже в карточке «Внешность»')}
+});
 $('#photo').addEventListener('change',async e=>{
   const f=e.target.files&&e.target.files[0];if(!f)return;
+  setLikeOpen(true);
   const url=URL.createObjectURL(f),img=new Image();
   img.onload=async()=>{
     const ctx=drawPhoto(img);URL.revokeObjectURL(url);
@@ -1080,12 +1117,13 @@ $('#photo').addEventListener('change',async e=>{
         const patch={};if(a.skin)patch.skin=a.skin;if(a.hair)patch.hair=a.hair;if(a.eye)patch.eye=a.eye;if(a.style)patch.style=a.style;if(a.beard)patch.beard=a.beard;
         state.p.face=a.face;setLook(patch);
         const FN={oval:'овальное',round:'круглое',square:'квадратное',long:'вытянутое',heart:'сердечком'};
-        pstatus(`Готово: лицо ${FN[a.face]}${a.beard&&a.beard!=='none'?', борода':''}${a.style==='bald'?', без волос':a.style==='long'?', длинные волосы':''}. Если что-то не так, поправь ниже.`);
-        e.target.value='';return;
+        e.target.value='';
+        photoDone(`Двойник обновлён: лицо ${FN[a.face]}${a.beard&&a.beard!=='none'?', борода':''}${a.style==='bald'?', без волос':a.style==='long'?', длинные волосы':''}`,true);
+        $('#figure').scrollIntoView({behavior:'smooth',block:'center'});return;
       }
       pstatus('Не нашёл лицо. Нажми на фото: сначала на щёку, потом на волосы.');
     }else pstatus('Автоопределение здесь недоступно. Нажми на фото: сначала на щёку, потом на волосы.');
-    photoMode='skin';e.target.value='';
+    photoMode='skin';e.target.value='';$('#likeMe').scrollIntoView({behavior:'smooth',block:'start'});
   };
   img.src=url;
 });
@@ -1094,7 +1132,7 @@ $('#pcv').addEventListener('click',e=>{
   const cv=e.currentTarget,rc=cv.getBoundingClientRect(),x=(e.clientX-rc.left)*cv.width/rc.width,y=(e.clientY-rc.top)*cv.height/rc.height,r=Math.max(4,cv.width*.012);
   const c=sampleDisc(photoCtx,x,y,r,photoMode==='skin'?[.2,.8]:[.1,.6]);if(!c)return;
   if(photoMode==='skin'){setLook({skin:toHex(c.map(v=>v+(255-v)*.06))});mark([{x,y}],'#F2B33D');photoMode='hair';pstatus('Кожа взята. Теперь нажми на волосы.')}
-  else{setLook({hair:toHex(c)});mark([{x,y}],'#F2B33D');photoMode='idle';pstatus('Готово. Форму лица, причёску и бороду выбери ниже.')}
+  else{setLook({hair:toHex(c)});mark([{x,y}],'#F2B33D');photoMode='idle';pstatus('Готово.');photoDone('Цвета взяты с фото. Теперь выбери форму лица, причёску и бороду',false)}
 });
 const LOOKF=['skin','hair','eye','style','beard','glasses'];
 function fillLookForm(){const L=lookParams(state.p);LOOKF.forEach(k=>{const el=$('#lk-'+k);if(el)el.value=L[k]});$('#lk-face').value=state.p.face||'oval';
